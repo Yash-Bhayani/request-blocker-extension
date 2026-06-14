@@ -1,6 +1,6 @@
 # Request Blocker Extension
 
-This extension allows you to block user defined requests.
+This browser extension allows you to block user defined requests.
 
 Many times you may want that specific type of data should not be shown to you.
 
