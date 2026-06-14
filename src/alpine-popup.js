@@ -46,7 +46,13 @@ Alpine.data('popupManager', () => ({
         if (!rule) return;
 
         rule.active = active;
-        await chrome.storage.local.set({ rules: this.rules });
+
+        // Explicitly update the rule object and save
+        const cleanRules = JSON.parse(JSON.stringify(this.rules));
+        await chrome.storage.local.set({ rules: cleanRules });
+
+        // Refresh local state to ensure reactivity
+        this.rules = cleanRules;
     },
 
     async openOptions() {
