@@ -23,7 +23,8 @@
     "storage",
     "declarativeNetRequest",
     "activeTab",
-    "tabs"
+    "tabs",
+    "data_collection_permissions"
   ],
   "host_permissions": [
     "<all_urls>"
