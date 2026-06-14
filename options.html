@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Manage Rules</title>
+    <link rel="stylesheet" href="options.css">
+    <script type="module" src="./dist/options.js"></script>
+</head>
+
+<body x-data="ruleManager">
+<div class="container">
+    <h2>
+        <svg style="width:28px;height:28px;fill:#0d6efd;" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+        Request Blocker
+    </h2>
+
+    <div class="card">
+        <h3 x-text="titleText"></h3>
+
+        <label>Target Domain/Path <span class="hint">(e.g., linkedin.com or linkedin.com/feed)</span></label>
+        <input type="text" x-model="domain" placeholder="example.com">
+
+        <label>Regex Filter <span class="hint">(e.g., ^https://media\.licdn\.com/.*)</span></label>
+        <input type="text" x-model="regex" placeholder=".*">
+
+        <label>Logic Operator <span class="hint">(If providing both Regex and Types below)</span></label>
+        <select x-model="conditionLogic">
+            <option value="OR">OR - Block if it matches Regex OR Resource Type</option>
+            <option value="AND">AND - Block ONLY if it matches BOTH Regex AND Resource Type</option>
+        </select>
+
+        <label>Resource Types to Block:</label>
+        <div class="types-grid">
+            <div>
+                <input type="checkbox" id="type-image" value="image" x-model="types" class="type-checkbox">
+                <label for="type-image" class="type-label">Image</label>
+            </div>
+            <div>
+                <input type="checkbox" id="type-script" value="script" x-model="types" class="type-checkbox">
+                <label for="type-script" class="type-label">Script</label>
+            </div>
+            <div>
+                <input type="checkbox" id="type-stylesheet" value="stylesheet" x-model="types" class="type-checkbox">
+                <label for="type-stylesheet" class="type-label">Stylesheet</label>
+            </div>
+            <div>
+                <input type="checkbox" id="type-xhr" value="xmlhttprequest" x-model="types" class="type-checkbox">
+                <label for="type-xhr" class="type-label">XMLHttpRequest</label>
+            </div>
+            <div>
+                <input type="checkbox" id="type-subframe" value="sub_frame" x-model="types" class="type-checkbox">
+                <label for="type-subframe" class="type-label">Sub Frame (Iframe)</label>
+            </div>
+            <div>
+                <input type="checkbox" id="type-media" value="media" x-model="types" class="type-checkbox">
+                <label for="type-media" class="type-label">Media (Video/Audio)</label>
+            </div>
+        </div>
+
+        <label class="toggle-wrapper">
+            <div class="switch">
+                <input type="checkbox" x-model="active">
+                <span class="slider"></span>
+            </div>
+            <span class="toggle-text">Rule is Active</span>
+        </label>
+
+        <div class="button-group">
+            <button @click="saveRule()">
+                <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                <span x-text="buttonText"></span>
+            </button>
+            <button @click="clearForm()" class="btn-secondary" x-show="editingId">Cancel</button>
+
+            <span class="success-msg" x-show="successMessage" x-cloak>
+                    <svg style="width:18px;height:18px;fill:#10b981;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    <span x-text="successMessage"></span>
+                </span>
+        </div>
+    </div>
+
+    <h3>Your Active Rules</h3>
+    <ul class="rule-list">
+        <template x-for="rule in rules" :key="rule.id">
+            <li class="rule-item" :class="rule.active ? '' : 'inactive'">
+                <div>
+                    <div class="rule-header">
+                        <span class="rule-title" x-text="rule.name || 'Custom Rule'"></span>
+
+                        <template x-if="rule.regex && rule.types && rule.types.length > 0">
+                            <span class="badge badge-logic" x-text="rule.conditionLogic || 'OR'"></span>
+                        </template>
+                    </div>
+
+                    <div class="rule-details">
+                        Domain: <span x-text="rule.domain || '(Global)'"></span><br>
+                        Regex: <span x-text="rule.regex || '(none)'"></span><br>
+                        Types: <strong x-text="formatTypes(rule.types)"></strong>
+                    </div>
+                </div>
+
+                <div class="rule-actions" style="display: flex; align-items: center; gap: 15px;">
+
+                    <label class="switch" title="Enable or Disable this rule">
+                        <input type="checkbox" :checked="rule.active" @change="toggleRule(rule.id, $event.target.checked)">
+                        <span class="slider"></span>
+                    </label>
+
+                    <template x-if="!rule.isSystem">
+                        <div style="display: flex; gap: 8px;">
+                            <button @click="editRule(rule.id)" class="btn-warning">
+                                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                Edit
+                            </button>
+                            <button @click="deleteRule(rule.id)" class="btn-danger">
+                                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                            </button>
+                        </div>
+                    </template>
+
+                </div>
+            </li>
+        </template>
+
+        <div class="empty-state" x-show="rules.length === 0" x-cloak>
+            <svg style="width:48px;height:48px;fill:#ced4da;margin-bottom:10px;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+            <br>No filtering rules have been created yet.
+        </div>
+    </ul>
+
+    <div class="card" style="margin-top: 40px; text-align: center; background-color: #e9ecef; border: none; box-shadow: none;">
+        <h3 style="border: none; padding-bottom: 0; margin-bottom: 10px; font-size: 16px;">Do you have any feedback?</h3>
+        <p style="margin: 0; font-size: 14px; color: var(--text-muted);">
+            Found a bug or have any suggestion, or anything else you want to tell? <br>
+            Please send your feedback to:
+            <a href="mailto:yash.m.bhayani@zohomail.in" style="color: var(--primary); font-weight: bold; text-decoration: none;">yash.m.bhayani@zohomail.in</a>
+        </p>
+    </div>
+</div>
+</body>
+</html>
