@@ -8,6 +8,8 @@ For example, while surfing LinkedIn, you may only want to focus on content rathe
 
 In that case, you can use this extension to block image and video rendering. This extension actually blocks the requests used to fetch the resources from the network, saving your bandwidth and memory while fulfilling your requirement.
 
+Video: https://ymbitsolutions.com/videos/browser_extension/request-blocker-browser-extension.mp4
+
 ---
 
 ## How to Use It
