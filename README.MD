@@ -6,8 +6,7 @@ Many times you may want that specific type of data should not be shown to you.
 
 For example, while surfing LinkedIn, you may only want to focus on content rather than images and videos.
 
-In that case, you can use
-this extension to block image and video rendering. This extension actually blocks the requests used to fetch the resources from the network, saving your bandwidth and memory while fulfilling your requirement.
+In that case, you can use this extension to block image and video rendering. This extension actually blocks the requests used to fetch the resources from the network, saving your bandwidth and memory while fulfilling your requirement.
 
 ---
 
