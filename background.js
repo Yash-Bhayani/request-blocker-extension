@@ -1,10 +1,8 @@
-// background.js
-
 const SYSTEM_RULES = [
     {
         id: 'system_linkedin_images',
-        name: "Block LinkedIn feed images",
-        domain: "www.linkedin.com/feed",
+        name: "block linked in images",
+        domain: "www.linkedin.com",
         regex: "^https://media\\.licdn\\.com/dms/image/.*",
         types: ["image"],
         conditionLogic: "OR",
@@ -13,8 +11,8 @@ const SYSTEM_RULES = [
     },
     {
         id: 'system_linkedin_video',
-        name: "Block LinkedIn feed videos",
-        domain: "www.linkedin.com/feed",
+        name: "block linked video",
+        domain: "www.linkedin.com",
         regex: "^https://dms\\.licdn\\.com/playlist/vid/.*",
         types: [],
         conditionLogic: "OR",
@@ -27,7 +25,7 @@ async function updateDNRRules() {
     const result = await chrome.storage.local.get("rules");
     let customRules = result.rules || [];
 
-    // 1. Ensure system rules are always present in the storage array
+    // Ensure system rules are present
     let storageNeedsUpdate = false;
     for (const sysRule of SYSTEM_RULES) {
         if (!customRules.find(r => r.id === sysRule.id)) {
@@ -36,7 +34,6 @@ async function updateDNRRules() {
         }
     }
 
-    // Save back to storage if we had to inject the system rules
     if (storageNeedsUpdate) {
         await chrome.storage.local.set({ rules: customRules });
     }
@@ -47,20 +44,9 @@ async function updateDNRRules() {
     for (const rule of customRules) {
         if (!rule.active) continue;
 
-        // Parse Domain & Path
+        // Parse Domain to strictly use the hostname
         let targetString = rule.domain ? rule.domain.trim().replace(/^https?:\/\//, '') : "";
-        let hostname = "";
-        let path = "";
-
-        if (targetString) {
-            const slashIndex = targetString.indexOf('/');
-            if (slashIndex !== -1) {
-                hostname = targetString.substring(0, slashIndex);
-                path = targetString.substring(slashIndex);
-            } else {
-                hostname = targetString;
-            }
-        }
+        let hostname = targetString.split('/')[0]; // Guarantees we only take the domain
 
         const baseCondition = {};
         if (hostname) {
@@ -85,9 +71,6 @@ async function updateDNRRules() {
 
             if (hasTypes) {
                 combinedCondition.resourceTypes = rule.types;
-                if (path && path !== "/" && !hasRegex) {
-                    combinedCondition.urlFilter = `||${hostname}${path}*`;
-                }
             } else if (!hasRegex) {
                 combinedCondition.urlFilter = "*";
             }
@@ -120,11 +103,7 @@ async function updateDNRRules() {
             if (hasTypes) {
                 let typesCondition = { ...baseCondition };
                 typesCondition.resourceTypes = rule.types;
-                if (path && path !== "/") {
-                    typesCondition.urlFilter = `||${hostname}${path}*`;
-                } else {
-                    typesCondition.urlFilter = "*";
-                }
+                typesCondition.urlFilter = "*";
 
                 dnrRules.push({
                     id: idCounter++,
@@ -146,8 +125,6 @@ async function updateDNRRules() {
         }
     }
 
-    console.log("[DNR] Generated rules:", dnrRules);
-
     const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
     const existingRuleIds = existingRules.map(r => r.id);
 
@@ -156,19 +133,13 @@ async function updateDNRRules() {
             removeRuleIds: existingRuleIds,
             addRules: dnrRules
         });
-
-        const activeRules = await chrome.declarativeNetRequest.getDynamicRules();
-        console.log(`[DNR SUCCESS] Applied ${activeRules.length} underlying rules!`);
     } catch (e) {
         console.error("[DNR FATAL ERROR] Browser rejected the rules:", e);
     }
 }
 
-// Initial load
 updateDNRRules();
-
 let dnrUpdateTimeout = null;
-
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.rules) {
         if (dnrUpdateTimeout) clearTimeout(dnrUpdateTimeout);

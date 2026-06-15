@@ -17,10 +17,8 @@ Alpine.data('popupManager', () => ({
 
     async getCurrentTabDomain() {
         try {
-            // Try standard Chrome/Firefox method
             let tabs = await chrome.tabs.query({ active: true, currentWindow: true });
 
-            // Firefox fallback
             if (!tabs || tabs.length === 0 || !tabs[0].url) {
                 tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
             }
@@ -28,12 +26,8 @@ Alpine.data('popupManager', () => ({
             if (tabs && tabs.length > 0 && tabs[0].url) {
                 const url = new URL(tabs[0].url);
                 if (url.protocol.startsWith('http')) {
-                    // Combine hostname and pathname (e.g., linkedin.com + /feed)
-                    let fullPath = url.hostname + url.pathname;
-                    if (fullPath.endsWith('/')) {
-                        fullPath = fullPath.slice(0, -1);
-                    }
-                    this.currentHost = fullPath;
+                    // FIX: Only take the root hostname, ignore any paths
+                    this.currentHost = url.hostname;
                 }
             }
         } catch (e) {

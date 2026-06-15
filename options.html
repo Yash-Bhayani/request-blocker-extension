@@ -17,9 +17,13 @@
     <div class="card">
         <h3 x-text="titleText"></h3>
 
-        <label>Target Domain/Path <span class="hint">(e.g., linkedin.com or linkedin.com/feed)</span></label>
-        <input type="text" x-model="domain" placeholder="example.com">
+        <div style="background-color: #e7f1ff; border-left: 4px solid #0d6efd; padding: 12px 15px; margin-bottom: 25px; border-radius: 4px; font-size: 13.5px; color: #084298; line-height: 1.5;">
+            <strong>💡 Note on Manifest V3 Limitations:</strong> <br>
+            This extension is built using the modern <strong>Manifest V3</strong> architecture and the Declarative Net Request API for maximum privacy and performance. Because of how Manifest V3 handles network-level blocking, rules can only be applied to the <strong>entire root domain</strong> (e.g., <code>linkedin.com</code>). It is not possible to block resources only on specific paths (like <code>/feed</code> or <code>/search</code>).
+        </div>
 
+        <label>Target Domain <span class="hint">(e.g., linkedin.com)</span></label>
+        <input type="text" x-model="domain" placeholder="example.com">
         <label>Regex Filter <span class="hint">(e.g., ^https://media\.licdn\.com/.*)</span></label>
         <input type="text" x-model="regex" placeholder=".*">
 

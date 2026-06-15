@@ -20,9 +20,12 @@ Alpine.data('ruleManager', () => ({
     init() {
         console.log("[Options] Script initialized. Full URL:", window.location.href);
 
+        // Auto-fill domain from popup
         const params = new URLSearchParams(window.location.search);
         if (params.has('domain')) {
-            this.domain = params.get('domain');
+            // FIX: Split by '/' and take only the first part to guarantee a clean domain
+            this.domain = params.get('domain').split('/')[0];
+            console.log("[Options] Clean Domain extracted ->", this.domain);
         }
 
         this.loadRules();
@@ -38,13 +41,21 @@ Alpine.data('ruleManager', () => ({
         this.rules = result.rules || [];
     },
 
-    // ... inside alpine-options.js
-
     async saveRule() {
-        if (!this.domain.trim() && !this.regex.trim() && this.types.length === 0) {
-            alert("Please provide at least a Domain, a Regex, or Resource Types.");
+        // 1. First, check if they provided a domain
+        if (!this.domain.trim()) {
+            alert("Please provide a Target Domain (e.g., example.com).");
             return;
         }
+
+        // 2. Next, ensure they provided WHAT to block (either Regex OR Types)
+        if (!this.regex.trim() && this.types.length === 0) {
+            alert("Please provide either a Regex Filter OR select at least one Resource Type to block.");
+            return;
+        }
+
+        // AUTO-CLEAN DOMAIN: Strip http://, https://, and any paths
+        let cleanedDomain = this.domain.trim().replace(/^https?:\/\//, '').split('/')[0];
 
         if (this.editingId) {
             const index = this.rules.findIndex(r => r.id === this.editingId);
@@ -52,7 +63,7 @@ Alpine.data('ruleManager', () => ({
                 this.rules[index] = {
                     id: this.editingId,
                     name: this.rules[index].name || "Custom Rule",
-                    domain: this.domain.trim(),
+                    domain: cleanedDomain,
                     regex: this.regex.trim(),
                     types: this.types,
                     conditionLogic: this.conditionLogic,
@@ -63,8 +74,8 @@ Alpine.data('ruleManager', () => ({
         } else {
             this.rules.push({
                 id: Date.now(),
-                name: `Rule for ${this.domain || 'All Domains'}`,
-                domain: this.domain.trim(),
+                name: `Rule for ${cleanedDomain || 'All Domains'}`,
+                domain: cleanedDomain,
                 regex: this.regex.trim(),
                 types: this.types,
                 conditionLogic: this.conditionLogic,
@@ -72,7 +83,6 @@ Alpine.data('ruleManager', () => ({
             });
         }
 
-        // FIX: Strip Alpine Proxies before saving
         const cleanRules = JSON.parse(JSON.stringify(this.rules));
         await chrome.storage.local.set({ rules: cleanRules });
 
