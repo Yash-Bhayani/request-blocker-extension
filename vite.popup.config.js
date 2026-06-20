@@ -1,15 +1,13 @@
 import { defineConfig } from 'vite'
+import { resolve } from 'path'
 
 export default defineConfig({
     build: {
         outDir: 'dist',
-        emptyOutDir: false,
-
+        emptyOutDir: false, // Prevents deleting options files
         rollupOptions: {
-            input: './src/alpine-popup.js',
-
-            output: {
-                entryFileNames: 'popup.js'
+            input: {
+                popup: resolve(__dirname, 'popup.html')
             }
         }
     }

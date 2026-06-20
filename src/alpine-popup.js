@@ -1,4 +1,5 @@
-import Alpine from './main'
+import Alpine from './main.js'
+import '../popup.css'
 
 Alpine.data('popupManager', () => ({
     rules: [],

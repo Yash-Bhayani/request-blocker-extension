@@ -1,104 +1,80 @@
-import Alpine from './main'
+import Alpine from './main.js' // CRITICAL: Must have .js extension
 
 Alpine.data('ruleManager', () => ({
     rules: [],
-    domains: [""], // Changed from string to an array with one empty field
+    domains: [""],
+
+    enableBlock: true,
+    enableScript: false,
     regex: "",
     types: [],
     conditionLogic: "OR",
+    scriptCode: "",
+    scriptTrigger: "document_idle",
     active: true,
     editingId: null,
     successMessage: "",
 
     get titleText() { return this.editingId ? 'Edit Rule' : 'Create Rule'; },
-    get buttonText() { return this.editingId ? 'Update Rule' : 'Save Rule'; },
 
-    formatTypes(types) {
-        return types && types.length > 0 ? types.join(', ') : '(none)';
-    },
+    formatTypes(types) { return types && types.length > 0 ? types.join(', ') : '(none)'; },
 
     init() {
-        console.log("[Options] Script initialized.");
-
         const params = new URLSearchParams(window.location.search);
-        if (params.has('domain')) {
-            // Pre-fill the first input box with the domain from the active tab
-            this.domains = [params.get('domain').split('/')[0]];
-        }
-
+        if (params.has('domain')) this.domains = [params.get('domain').split('/')[0]];
         this.loadRules();
 
-        this.$watch('successMessage', (val) => {
-            if (val) setTimeout(() => this.successMessage = "", 3000);
+        // Listen for background script updates in real-time
+        chrome.storage.onChanged.addListener((changes, area) => {
+            if (area === "local" && changes.rules) {
+                this.rules = changes.rules.newValue || [];
+            }
         });
+
+        this.$watch('successMessage', (val) => { if (val) setTimeout(() => this.successMessage = "", 3000); });
     },
 
-    // Dynamic field controls
-    addDomainField() {
-        this.domains.push("");
-    },
-
-    removeDomainField(index) {
-        if (this.domains.length > 1) {
-            this.domains.splice(index, 1);
-        } else {
-            this.domains = [""]; // Keep at least one empty box
-        }
-    },
+    addDomainField() { this.domains.push(""); },
+    removeDomainField(index) { if (this.domains.length > 1) this.domains.splice(index, 1); else this.domains = [""]; },
 
     async loadRules() {
-        const result = (await chrome.storage.local.get("rules")) || {};
+        const result = await chrome.storage.local.get("rules");
         this.rules = result.rules || [];
     },
 
     async saveRule() {
-        // Clean and filter out empty fields, strip protocol and paths
-        let cleanList = this.domains
-            .map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0])
-            .filter(d => d.length > 0);
+        let cleanList = this.domains.map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0]).filter(d => d.length > 0);
+        if (cleanList.length === 0) return alert("Please provide at least one Target Domain.");
 
-        if (cleanList.length === 0) {
-            alert("Please provide at least one Target Domain.");
-            return;
-        }
+        if (!this.enableBlock && !this.enableScript) return alert("You must enable at least one action: Block Requests or Execute Script.");
+        if (this.enableBlock && !this.regex.trim() && this.types.length === 0) return alert("Blocking enabled: Provide a Regex or Resource Type.");
+        if (this.enableScript && !this.scriptCode.trim()) return alert("Script enabled: Please provide custom JavaScript code.");
 
-        if (!this.regex.trim() && this.types.length === 0) {
-            alert("Please provide either a Regex Filter OR select at least one Resource Type to block.");
-            return;
-        }
-
-        // Combine into a clean string for storage & background compatibility
         let combinedDomains = cleanList.join(', ');
+
+        const ruleData = {
+            domain: combinedDomains,
+            enableBlock: this.enableBlock,
+            enableScript: this.enableScript,
+            regex: this.regex.trim(),
+            types: this.types,
+            conditionLogic: this.conditionLogic,
+            scriptCode: this.scriptCode.trim(),
+            scriptTrigger: this.scriptTrigger,
+            active: this.active
+        };
 
         if (this.editingId) {
             const index = this.rules.findIndex(r => r.id === this.editingId);
             if (index !== -1 && !this.rules[index].isSystem) {
-                this.rules[index] = {
-                    id: this.editingId,
-                    name: this.rules[index].name || "Custom Rule",
-                    domain: combinedDomains,
-                    regex: this.regex.trim(),
-                    types: this.types,
-                    conditionLogic: this.conditionLogic,
-                    active: this.active
-                };
+                this.rules[index] = { ...this.rules[index], ...ruleData };
             }
             this.editingId = null;
         } else {
-            this.rules.push({
-                id: Date.now(),
-                name: `Rule for ${combinedDomains}`,
-                domain: combinedDomains,
-                regex: this.regex.trim(),
-                types: this.types,
-                conditionLogic: this.conditionLogic,
-                active: this.active
-            });
+            this.rules.push({ id: Date.now(), name: `Rule for ${combinedDomains}`, ...ruleData, isSystem: false });
         }
 
-        const cleanRules = JSON.parse(JSON.stringify(this.rules));
-        await chrome.storage.local.set({ rules: cleanRules });
-
+        await chrome.storage.local.set({ rules: JSON.parse(JSON.stringify(this.rules)) });
         this.successMessage = "Rule saved successfully!";
         this.clearForm();
     },
@@ -107,37 +83,47 @@ Alpine.data('ruleManager', () => ({
         const rule = this.rules.find(r => r.id === id);
         if (rule && !rule.isSystem) {
             this.editingId = rule.id;
-            // Split the stored string back into an array for the dynamic fields
             this.domains = rule.domain ? rule.domain.split(', ') : [""];
+            this.enableBlock = rule.enableBlock !== false;
+            this.enableScript = rule.enableScript || false;
             this.regex = rule.regex || "";
             this.types = rule.types || [];
             this.conditionLogic = rule.conditionLogic || "OR";
+            this.scriptCode = rule.scriptCode || "";
+            this.scriptTrigger = rule.scriptTrigger || "document_idle";
             this.active = rule.active;
         }
     },
 
     async deleteRule(id) {
         const rule = this.rules.find(r => r.id === id);
-        if (rule && rule.isSystem) {
-            alert("System rules cannot be deleted.");
-            return;
-        }
+        if (rule && rule.isSystem) return alert("System rules cannot be deleted.");
 
         if (confirm("Are you sure you want to delete this rule?")) {
             this.rules = this.rules.filter(r => r.id !== id);
-            const cleanRules = JSON.parse(JSON.stringify(this.rules));
-            await chrome.storage.local.set({ rules: cleanRules });
+            await chrome.storage.local.set({ rules: JSON.parse(JSON.stringify(this.rules)) });
+        }
+    },
+
+    async toggleRuleStatus(id, newStatus) {
+        const rule = this.rules.find(r => r.id === id);
+        if (rule) {
+            rule.active = newStatus;
+            await chrome.storage.local.set({ rules: JSON.parse(JSON.stringify(this.rules)) });
         }
     },
 
     clearForm() {
         this.editingId = null;
         this.domains = [""];
+        this.enableBlock = true;
+        this.enableScript = false;
         this.regex = "";
         this.types = [];
         this.conditionLogic = "OR";
+        this.scriptCode = "";
+        this.scriptTrigger = "document_idle";
         this.active = true;
     }
 }));
-
 Alpine.start();

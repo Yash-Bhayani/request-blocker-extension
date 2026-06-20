@@ -1,166 +1,191 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Manage Rules</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Surf Helper - Dashboard</title>
     <link rel="stylesheet" href="options.css">
-    <script type="module" src="./dist/options.js"></script>
 </head>
+<body>
 
-<body x-data="ruleManager">
-<div class="container">
-    <h2>
-        <svg style="width:28px;height:28px;fill:#0d6efd;" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-        Request Blocker
-    </h2>
-
-    <div class="card">
-        <h3 x-text="titleText"></h3>
-
-        <!-- Educational Info Box -->
-        <div class="info-box">
-            <strong>💡 Note on Manifest V3 Limitations:</strong> <br>
-            This extension is built using the modern <strong>Manifest V3</strong> architecture and the Declarative Net Request API for maximum privacy and performance. Because of how Manifest V3 handles network-level blocking, rules can only be applied to <strong>root domains</strong>. You can separate multiple root domains using commas.
-        </div>
-
-        <!-- ... right after the blue educational info box ... -->
-
-        <label>Target Domains</label>
-
-        <!-- Loop to dynamically render input boxes -->
-        <template x-for="(dom, index) in domains" :key="index">
-            <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                <!-- Bind strictly to the array element index -->
-                <input type="text" x-model="domains[index]" placeholder="example.com" style="flex: 1; margin: 0;">
-
-                <!-- Remove Field Button -->
-                <button type="button" @click="removeDomainField(index)" class="btn-danger" style="padding: 12px; margin: 0; display: flex; align-items: center; justify-content: center;" title="Remove this domain">
-                    <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 13H5v-2h14v2z"/></svg>
-                </button>
-            </div>
-        </template>
-
-        <!-- Add Field Button -->
-        <button type="button" @click="addDomainField()" class="btn-secondary" style="margin-top: 5px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px;">
-            ➕ Add Another Domain
-        </button>
-
-        <label>Regex Filter <span class="hint">(e.g., ^https://media\.licdn\.com/.*)</span></label>
-        <input type="text" x-model="regex" placeholder=".*">
-
-        <label>Logic Operator <span class="hint">(If providing both Regex and Types below)</span></label>
-        <select x-model="conditionLogic">
-            <option value="OR">OR - Block if it matches Regex OR Resource Type</option>
-            <option value="AND">AND - Block ONLY if it matches BOTH Regex AND Resource Type</option>
-        </select>
-
-        <label>Resource Types to Block:</label>
-        <div class="types-grid">
-            <div>
-                <input type="checkbox" id="type-image" value="image" x-model="types" class="type-checkbox">
-                <label for="type-image" class="type-label">Image</label>
-            </div>
-            <div>
-                <input type="checkbox" id="type-script" value="script" x-model="types" class="type-checkbox">
-                <label for="type-script" class="type-label">Script</label>
-            </div>
-            <div>
-                <input type="checkbox" id="type-stylesheet" value="stylesheet" x-model="types" class="type-checkbox">
-                <label for="type-stylesheet" class="type-label">Stylesheet</label>
-            </div>
-            <div>
-                <input type="checkbox" id="type-xhr" value="xmlhttprequest" x-model="types" class="type-checkbox">
-                <label for="type-xhr" class="type-label">XMLHttpRequest</label>
-            </div>
-            <div>
-                <input type="checkbox" id="type-subframe" value="sub_frame" x-model="types" class="type-checkbox">
-                <label for="type-subframe" class="type-label">Sub Frame (Iframe)</label>
-            </div>
-            <div>
-                <input type="checkbox" id="type-media" value="media" x-model="types" class="type-checkbox">
-                <label for="type-media" class="type-label">Media (Video/Audio)</label>
-            </div>
-        </div>
-
-        <label class="toggle-wrapper">
-            <div class="switch">
-                <input type="checkbox" x-model="active">
-                <span class="slider"></span>
-            </div>
-            <span class="toggle-text">Rule is Active</span>
-        </label>
-
-        <div class="button-group">
-            <button @click="saveRule()">
-                <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-                <span x-text="buttonText"></span>
-            </button>
-            <button @click="clearForm()" class="btn-secondary" x-show="editingId">Cancel</button>
-
-            <span class="success-msg" x-show="successMessage" x-cloak>
-                    <svg style="width:18px;height:18px;fill:#10b981;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                    <span x-text="successMessage"></span>
-                </span>
-        </div>
+<div class="container" x-data="ruleManager">
+    <div class="header">
+        <h1>🏄 Web Surf Helper Dashboard</h1>
+        <p>Manage your network blocking and custom script rules.</p>
     </div>
 
-    <h3>Your Active Rules</h3>
-    <ul class="rule-list">
-        <template x-for="rule in rules" :key="rule.id">
-            <li class="rule-item" :class="rule.active ? '' : 'inactive'">
-                <div>
-                    <div class="rule-header">
-                        <span class="rule-title" x-text="rule.name || 'Custom Rule'"></span>
+    <div class="main-layout">
 
-                        <template x-if="rule.regex && rule.types && rule.types.length > 0">
-                            <span class="badge badge-logic" x-text="rule.conditionLogic || 'OR'"></span>
+        <!-- LEFT/TOP COLUMN: RULE CREATOR/EDITOR -->
+        <div class="card">
+            <h2 x-text="titleText" style="margin-top: 0;"></h2>
+
+            <div class="info-box">
+                <strong>💡 Note on Manifest V3 Limitations:</strong> <br>
+                This extension uses modern <strong>Manifest V3</strong> architecture for maximum privacy and performance. Network-level blocking can only be applied to <strong>root domains</strong>. You can add multiple domains using the dynamic fields below.
+            </div>
+
+            <label>Target Domains</label>
+            <template x-for="(dom, index) in domains" :key="index">
+                <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                    <input type="text" x-model="domains[index]" placeholder="example.com" style="flex: 1; margin: 0;">
+                    <button type="button" @click="removeDomainField(index)" class="btn-danger" style="padding: 12px; margin: 0; display: flex; align-items: center; justify-content: center;" title="Remove domain">
+                        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 13H5v-2h14v2z"/></svg>
+                    </button>
+                </div>
+            </template>
+            <button type="button" @click="addDomainField()" class="btn-outline" style="margin-top: 5px; margin-bottom: 10px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px;">
+                ➕ Add Another Domain
+            </button>
+
+            <hr>
+
+            <!-- ACTION 1: BLOCK REQUESTS -->
+            <div style="margin-bottom: 25px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <span class="action-title action-blue">Action 1: Block Network Requests</span>
+                    <label class="switch">
+                        <input type="checkbox" x-model="enableBlock">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div x-show="enableBlock" class="action-panel">
+                    <label style="margin-top: 0;">Regex Filter <span class="hint">(Optional - e.g., ^https://api\.example\.com/.*)</span></label>
+                    <input type="text" x-model="regex" placeholder="^https://api\.example\.com/.*">
+
+                    <label style="margin-top: 15px;">Resource Types <span class="hint">(Optional)</span></label>
+                    <div class="checkbox-group">
+                        <template x-for="type in ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'media', 'websocket', 'other']">
+                            <label class="type-label">
+                                <input type="checkbox" x-model="types" :value="type"> <span x-text="type"></span>
+                            </label>
                         </template>
                     </div>
 
-                    <div class="rule-details">
-                        Domain: <span x-text="rule.domain || '(Global)'"></span><br>
-                        Regex: <span x-text="rule.regex || '(none)'"></span><br>
-                        Types: <strong x-text="formatTypes(rule.types)"></strong>
-                    </div>
+                    <label style="margin-top: 15px;">Condition Logic</label>
+                    <select x-model="conditionLogic">
+                        <option value="OR">OR (Block if Regex OR Type matches)</option>
+                        <option value="AND">AND (Block ONLY if Regex AND Type matches)</option>
+                    </select>
                 </div>
+            </div>
 
-                <div class="rule-actions" style="display: flex; align-items: center; gap: 15px;">
+            <hr>
 
-                    <label class="switch" title="Enable or Disable this rule">
-                        <input type="checkbox" :checked="rule.active" @change="toggleRule(rule.id, $event.target.checked)">
-                        <span class="slider"></span>
+            <!-- ACTION 2: CUSTOM SCRIPT -->
+            <div style="margin-bottom: 25px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <span class="action-title action-yellow">Action 2: Execute Custom JavaScript</span>
+                    <label class="switch">
+                        <input type="checkbox" x-model="enableScript">
+                        <span class="slider round"></span>
                     </label>
-
-                    <template x-if="!rule.isSystem">
-                        <div style="display: flex; gap: 8px;">
-                            <button @click="editRule(rule.id)" class="btn-warning">
-                                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                                Edit
-                            </button>
-                            <button @click="deleteRule(rule.id)" class="btn-danger">
-                                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-                            </button>
-                        </div>
-                    </template>
-
                 </div>
-            </li>
-        </template>
 
-        <div class="empty-state" x-show="rules.length === 0" x-cloak>
-            <svg style="width:48px;height:48px;fill:#ced4da;margin-bottom:10px;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-            <br>No filtering rules have been created yet.
+                <div x-show="enableScript" class="action-panel">
+                    <label style="margin-top: 0;">When should this script run?</label>
+                    <select x-model="scriptTrigger">
+                        <option value="document_start">When page initially loads (document_start)</option>
+                        <option value="document_end">When DOM is ready (document_end)</option>
+                        <option value="document_idle">When page is fully loaded (document_idle)</option>
+                        <option value="on_intercept">When Network Interception occurs (Requires Block Rule above)</option>
+                    </select>
+
+                    <label style="margin-top: 15px;">JavaScript Code</label>
+                    <textarea x-model="scriptCode" placeholder="console.log('Hello from Web Surf Helper!');&#10;document.body.style.backgroundColor = 'red';"></textarea>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 30px;">
+                <button type="button" class="btn-primary" @click="saveRule()" x-text="editingId ? 'Update Rule' : 'Save Rule'"></button>
+                <button type="button" class="btn-secondary" x-show="editingId" @click="clearForm()">Cancel Edit</button>
+            </div>
+
+            <div class="success-message" x-show="successMessage" x-text="successMessage"></div>
         </div>
-    </ul>
 
+        <!-- RIGHT/BOTTOM COLUMN: SAVED RULES LIST -->
+        <div class="card">
+            <h2 style="margin-top: 0;">Active Rules</h2>
+            <ul class="rule-list">
+                <template x-if="rules.length === 0">
+                    <li class="empty-state">
+                        <div style="font-size:36px;margin-bottom:10px;">🛡️</div>
+                        <div style="font-weight:700;font-size:16px;">No Rules Yet</div>
+                        <div style="margin-top:8px;">Create your first blocking or automation rule.</div>
+                    </li>
+                </template>
+
+                <template x-for="rule in rules" :key="rule.id">
+                    <li class="rule-item" :class="rule.active ? '' : 'inactive'">
+
+                        <!-- LEFT COLUMN: TITLE & TOGGLE -->
+                        <div class="rule-left-col">
+                            <span class="rule-title" x-text="rule.name"></span>
+                            <span x-show="rule.isSystem" class="badge-system">System</span>
+                            <label class="switch" style="margin-left: 5px;">
+                                <input type="checkbox" :checked="rule.active" @change="toggleRuleStatus(rule.id, $event.target.checked)">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+
+                        <!-- RIGHT COLUMN: DETAILS -->
+                        <div class="rule-right-col">
+                            <div class="rule-details">
+                                <div class="rule-detail-row">
+                                    <strong>Actions:</strong>
+                                    <div style="display: flex; gap: 5px;">
+                                        <span x-show="rule.enableBlock !== false" class="badge-action badge-block">Block 🛡️</span>
+                                        <span x-show="rule.enableScript" class="badge-action badge-script">Script ⚡</span>
+                                    </div>
+                                </div>
+
+                                <div class="rule-detail-row">
+                                    <strong>Domain:</strong>
+                                    <code><span x-text="rule.domain || 'All Domains'"></span></code>
+                                </div>
+
+                                <div x-show="rule.enableBlock !== false">
+                                    <div class="rule-detail-row">
+                                        <strong>Regex:</strong>
+                                        <code><span x-text="rule.regex || '(none)'"></span></code>
+                                    </div>
+                                    <div class="rule-detail-row">
+                                        <strong>Types:</strong>
+                                        <code><span x-text="formatTypes(rule.types)"></span></code>
+                                    </div>
+                                    <div class="rule-detail-row" style="margin-top: 10px;">
+                                        <strong></strong> <!-- Empty spacer to align badge under text -->
+                                        <span class="badge-logic" x-text="rule.conditionLogic || 'OR'"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rule-actions" x-show="!rule.isSystem">
+                                <button type="button" class="btn-secondary btn-sm" @click="editRule(rule.id)">Edit</button>
+                                <button type="button" class="btn-danger btn-sm" @click="deleteRule(rule.id)">Delete</button>
+                            </div>
+                        </div>
+
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </div>
+
+    <!-- FEEDBACK SECTION -->
     <div class="card feedback-box">
-        <h3 style="border: none; padding-bottom: 0; margin-bottom: 10px; font-size: 16px;">We'd Love to Hear From You!</h3>
+        <h3 style="border: none; padding-bottom: 0; margin-bottom: 10px; font-size: 16px;">Do you have any feedback?</h3>
         <p style="margin: 0; font-size: 14px; color: var(--text-muted);">
-            Have a suggestion, found a bug, or just want to share how you are using the extension? <br>
+            Found a bug or have any suggestion, or anything else you want to tell? <br>
             Please send any type of feedback to:
             <a href="mailto:yash.m.bhayani@zohomail.in" style="color: var(--primary); font-weight: bold; text-decoration: none;">yash.m.bhayani@zohomail.in</a>
         </p>
     </div>
+
 </div>
+
+<script type="module" src="./src/alpine-options.js"></script>
 </body>
 </html>

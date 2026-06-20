@@ -1,11 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="popup.css">
-    <script type="module" src="./dist/popup.js"></script>
+<!--    <link rel="stylesheet" href="popup.css">-->
 </head>
-
 <body x-data="popupManager">
 
 <div class="header">
@@ -13,8 +11,8 @@
     <div class="current-domain" x-text="currentHost ? 'Viewing: ' + currentHost : 'Ready'"></div>
 </div>
 
-<div class="content">
-    <div x-show="rules.length === 0" class="empty-state" x-cloak>
+<div class="content" style="padding: 15px;">
+    <div x-show="rules.length === 0" class="empty-state">
         No rules created yet.
     </div>
 
@@ -29,10 +27,11 @@
         </div>
     </template>
 
-    <button class="btn-manage" @click="openOptions()">
+    <button class="btn-manage" @click="openOptions()" style="margin-top: 15px;">
         ⚙️ Manage Rules
     </button>
 </div>
 
+<script type="module" src="./src/alpine-popup.js"></script>
 </body>
 </html>
