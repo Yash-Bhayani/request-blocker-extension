@@ -17,9 +17,10 @@
     <div class="card">
         <h3 x-text="titleText"></h3>
 
-        <div style="background-color: #e7f1ff; border-left: 4px solid #0d6efd; padding: 12px 15px; margin-bottom: 25px; border-radius: 4px; font-size: 13.5px; color: #084298; line-height: 1.5;">
+        <!-- Educational Info Box -->
+        <div class="info-box">
             <strong>💡 Note on Manifest V3 Limitations:</strong> <br>
-            This extension is built using the modern <strong>Manifest V3</strong> architecture and the Declarative Net Request API for maximum privacy and performance. Because of how Manifest V3 handles network-level blocking, rules can only be applied to the <strong>entire root domain</strong> (e.g., <code>linkedin.com</code>). It is not possible to block resources only on specific paths (like <code>/feed</code> or <code>/search</code>).
+            This extension is built using the modern <strong>Manifest V3</strong> architecture and the Declarative Net Request API for maximum privacy and performance. Because of how Manifest V3 handles network-level blocking, rules can only be applied to <strong>root domains</strong>. You can separate multiple root domains using commas.
         </div>
 
         <!-- ... right after the blue educational info box ... -->
@@ -152,11 +153,11 @@
         </div>
     </ul>
 
-    <div class="card" style="margin-top: 40px; text-align: center; background-color: #e9ecef; border: none; box-shadow: none;">
-        <h3 style="border: none; padding-bottom: 0; margin-bottom: 10px; font-size: 16px;">Do you have any feedback?</h3>
+    <div class="card feedback-box">
+        <h3 style="border: none; padding-bottom: 0; margin-bottom: 10px; font-size: 16px;">We'd Love to Hear From You!</h3>
         <p style="margin: 0; font-size: 14px; color: var(--text-muted);">
-            Found a bug or have any suggestion, or anything else you want to tell? <br>
-            Please send your feedback to:
+            Have a suggestion, found a bug, or just want to share how you are using the extension? <br>
+            Please send any type of feedback to:
             <a href="mailto:yash.m.bhayani@zohomail.in" style="color: var(--primary); font-weight: bold; text-decoration: none;">yash.m.bhayani@zohomail.in</a>
         </p>
     </div>

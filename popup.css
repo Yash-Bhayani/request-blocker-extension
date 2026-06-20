@@ -74,3 +74,33 @@ input:checked + .slider:before { transform: translateX(16px); }
     margin-top: 15px;
 }
 .btn-manage:hover { background-color: #dee2e6; }
+
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #212529;
+        color: #f8f9fa;
+    }
+    .header {
+        background-color: #0a58ca;
+    }
+    .rule {
+        background: #343a40;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .btn-manage {
+        background-color: #2c3034;
+        color: #6ea8fe;
+        border-color: #495057;
+    }
+    .btn-manage:hover {
+        background-color: #495057;
+        color: #fff;
+    }
+    .empty-state {
+        color: #adb5bd;
+    }
+    .slider {
+        background-color: #495057;
+    }
+}

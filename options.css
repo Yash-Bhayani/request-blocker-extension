@@ -153,3 +153,105 @@ button svg { width: 16px; height: 16px; fill: currentColor; }
 
 .success-msg { color: #10b981; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 5px; }
 .empty-state { text-align: center; color: var(--text-muted); padding: 40px; background: var(--bg-card); border-radius: 10px; border: 2px dashed var(--border); }
+
+
+
+/* Standard styles for previously inline-styled elements */
+.info-box {
+    background-color: #e7f1ff;
+    border-left: 4px solid #0d6efd;
+    padding: 12px 15px;
+    margin-bottom: 25px;
+    border-radius: 4px;
+    font-size: 13.5px;
+    color: #084298;
+    line-height: 1.5;
+}
+
+.feedback-box {
+    margin-top: 40px;
+    text-align: center;
+    background-color: #e9ecef;
+    border: none;
+    box-shadow: none;
+}
+
+/* --- Dark Mode Engine --- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary: #3d8bfd;
+        --primary-hover: #6ea8fe;
+        --danger: #ea868f;
+        --warning: #ffda6a;
+        --warning-hover: #ffcd39;
+        --text-main: #f8f9fa;
+        --text-muted: #adb5bd;
+        --bg-page: #121212;
+        --bg-card: #1e1e1e;
+        --border: #495057;
+        --focus-ring: rgba(61, 139, 253, 0.25);
+    }
+
+    input[type="text"], select {
+        background-color: #2b2b2b;
+        color: var(--text-main);
+    }
+
+    .type-label {
+        background-color: #2b2b2b;
+        color: var(--text-muted);
+        border-color: var(--border);
+    }
+    .type-label:hover {
+        border-color: var(--text-main);
+    }
+
+    .btn-secondary {
+        background: #2b2b2b;
+        color: var(--text-main);
+    }
+    .btn-secondary:hover {
+        background: #343a40;
+    }
+
+    .btn-danger {
+        background: #2b2b2b;
+        color: var(--danger);
+    }
+    .btn-danger:hover {
+        background: #4a191e;
+        border-color: var(--danger);
+    }
+    .btn-warning {
+        color: #212529; /* Keep icon/text dark on yellow button */
+    }
+
+    .rule-item.inactive {
+        background-color: #252525;
+        opacity: 0.8;
+    }
+    .badge-inactive {
+        background: #4a191e;
+        color: var(--danger);
+    }
+    .badge-logic {
+        background: #2b2b2b;
+        color: var(--text-muted);
+        border-color: var(--border);
+    }
+
+    .slider { background-color: var(--border); }
+    .slider:before { background-color: #adb5bd; }
+    input:checked + .slider:before { background-color: #fff; }
+
+    /* Dark Mode overwrites for the special boxes */
+    .info-box {
+        background-color: rgba(13, 110, 253, 0.15);
+        border-left-color: var(--primary);
+        color: #9ec5fe;
+    }
+    .feedback-box {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border);
+    }
+}
