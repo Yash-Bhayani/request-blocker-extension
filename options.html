@@ -22,8 +22,28 @@
             This extension is built using the modern <strong>Manifest V3</strong> architecture and the Declarative Net Request API for maximum privacy and performance. Because of how Manifest V3 handles network-level blocking, rules can only be applied to the <strong>entire root domain</strong> (e.g., <code>linkedin.com</code>). It is not possible to block resources only on specific paths (like <code>/feed</code> or <code>/search</code>).
         </div>
 
-        <label>Target Domain <span class="hint">(e.g., linkedin.com)</span></label>
-        <input type="text" x-model="domain" placeholder="example.com">
+        <!-- ... right after the blue educational info box ... -->
+
+        <label>Target Domains</label>
+
+        <!-- Loop to dynamically render input boxes -->
+        <template x-for="(dom, index) in domains" :key="index">
+            <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                <!-- Bind strictly to the array element index -->
+                <input type="text" x-model="domains[index]" placeholder="example.com" style="flex: 1; margin: 0;">
+
+                <!-- Remove Field Button -->
+                <button type="button" @click="removeDomainField(index)" class="btn-danger" style="padding: 12px; margin: 0; display: flex; align-items: center; justify-content: center;" title="Remove this domain">
+                    <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 13H5v-2h14v2z"/></svg>
+                </button>
+            </div>
+        </template>
+
+        <!-- Add Field Button -->
+        <button type="button" @click="addDomainField()" class="btn-secondary" style="margin-top: 5px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px;">
+            ➕ Add Another Domain
+        </button>
+
         <label>Regex Filter <span class="hint">(e.g., ^https://media\.licdn\.com/.*)</span></label>
         <input type="text" x-model="regex" placeholder=".*">
 

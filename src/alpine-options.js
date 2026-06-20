@@ -2,7 +2,7 @@ import Alpine from './main'
 
 Alpine.data('ruleManager', () => ({
     rules: [],
-    domain: "",
+    domains: [""], // Changed from string to an array with one empty field
     regex: "",
     types: [],
     conditionLogic: "OR",
@@ -18,14 +18,12 @@ Alpine.data('ruleManager', () => ({
     },
 
     init() {
-        console.log("[Options] Script initialized. Full URL:", window.location.href);
+        console.log("[Options] Script initialized.");
 
-        // Auto-fill domain from popup
         const params = new URLSearchParams(window.location.search);
         if (params.has('domain')) {
-            // FIX: Split by '/' and take only the first part to guarantee a clean domain
-            this.domain = params.get('domain').split('/')[0];
-            console.log("[Options] Clean Domain extracted ->", this.domain);
+            // Pre-fill the first input box with the domain from the active tab
+            this.domains = [params.get('domain').split('/')[0]];
         }
 
         this.loadRules();
@@ -35,27 +33,42 @@ Alpine.data('ruleManager', () => ({
         });
     },
 
+    // Dynamic field controls
+    addDomainField() {
+        this.domains.push("");
+    },
+
+    removeDomainField(index) {
+        if (this.domains.length > 1) {
+            this.domains.splice(index, 1);
+        } else {
+            this.domains = [""]; // Keep at least one empty box
+        }
+    },
+
     async loadRules() {
-        // Background.js guarantees system rules exist, but we do a safe fetch here
         const result = (await chrome.storage.local.get("rules")) || {};
         this.rules = result.rules || [];
     },
 
     async saveRule() {
-        // 1. First, check if they provided a domain
-        if (!this.domain.trim()) {
-            alert("Please provide a Target Domain (e.g., example.com).");
+        // Clean and filter out empty fields, strip protocol and paths
+        let cleanList = this.domains
+            .map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0])
+            .filter(d => d.length > 0);
+
+        if (cleanList.length === 0) {
+            alert("Please provide at least one Target Domain.");
             return;
         }
 
-        // 2. Next, ensure they provided WHAT to block (either Regex OR Types)
         if (!this.regex.trim() && this.types.length === 0) {
             alert("Please provide either a Regex Filter OR select at least one Resource Type to block.");
             return;
         }
 
-        // AUTO-CLEAN DOMAIN: Strip http://, https://, and any paths
-        let cleanedDomain = this.domain.trim().replace(/^https?:\/\//, '').split('/')[0];
+        // Combine into a clean string for storage & background compatibility
+        let combinedDomains = cleanList.join(', ');
 
         if (this.editingId) {
             const index = this.rules.findIndex(r => r.id === this.editingId);
@@ -63,7 +76,7 @@ Alpine.data('ruleManager', () => ({
                 this.rules[index] = {
                     id: this.editingId,
                     name: this.rules[index].name || "Custom Rule",
-                    domain: cleanedDomain,
+                    domain: combinedDomains,
                     regex: this.regex.trim(),
                     types: this.types,
                     conditionLogic: this.conditionLogic,
@@ -74,8 +87,8 @@ Alpine.data('ruleManager', () => ({
         } else {
             this.rules.push({
                 id: Date.now(),
-                name: `Rule for ${cleanedDomain || 'All Domains'}`,
-                domain: cleanedDomain,
+                name: `Rule for ${combinedDomains}`,
+                domain: combinedDomains,
                 regex: this.regex.trim(),
                 types: this.types,
                 conditionLogic: this.conditionLogic,
@@ -90,13 +103,12 @@ Alpine.data('ruleManager', () => ({
         this.clearForm();
     },
 
-
-
     editRule(id) {
         const rule = this.rules.find(r => r.id === id);
         if (rule && !rule.isSystem) {
             this.editingId = rule.id;
-            this.domain = rule.domain || "";
+            // Split the stored string back into an array for the dynamic fields
+            this.domains = rule.domain ? rule.domain.split(', ') : [""];
             this.regex = rule.regex || "";
             this.types = rule.types || [];
             this.conditionLogic = rule.conditionLogic || "OR";
@@ -113,19 +125,6 @@ Alpine.data('ruleManager', () => ({
 
         if (confirm("Are you sure you want to delete this rule?")) {
             this.rules = this.rules.filter(r => r.id !== id);
-
-            // FIX: Strip Alpine Proxies before saving
-            const cleanRules = JSON.parse(JSON.stringify(this.rules));
-            await chrome.storage.local.set({ rules: cleanRules });
-        }
-    },
-
-    async toggleRule(id, isActive) {
-        const index = this.rules.findIndex(r => r.id === id);
-        if (index !== -1) {
-            this.rules[index].active = isActive;
-
-            // Strip Alpine Proxies before saving
             const cleanRules = JSON.parse(JSON.stringify(this.rules));
             await chrome.storage.local.set({ rules: cleanRules });
         }
@@ -133,7 +132,7 @@ Alpine.data('ruleManager', () => ({
 
     clearForm() {
         this.editingId = null;
-        this.domain = "";
+        this.domains = [""];
         this.regex = "";
         this.types = [];
         this.conditionLogic = "OR";

@@ -44,13 +44,16 @@ async function updateDNRRules() {
     for (const rule of customRules) {
         if (!rule.active) continue;
 
-        // Parse Domain to strictly use the hostname
-        let targetString = rule.domain ? rule.domain.trim().replace(/^https?:\/\//, '') : "";
-        let hostname = targetString.split('/')[0]; // Guarantees we only take the domain
-
+        // NEW: Parse comma-separated domains into a clean list of hostnames
         const baseCondition = {};
-        if (hostname) {
-            baseCondition.initiatorDomains = [hostname];
+        if (rule.domain && rule.domain.trim() !== "") {
+            const hostnames = rule.domain.split(',')
+                .map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0])
+                .filter(d => d.length > 0);
+
+            if (hostnames.length > 0) {
+                baseCondition.initiatorDomains = hostnames; // Passes array of domains to browser
+            }
         }
 
         const hasRegex = rule.regex && rule.regex.trim() !== "";
