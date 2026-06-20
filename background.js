@@ -6,7 +6,7 @@ const SYSTEM_RULES = [
         regex: "^https://media\\.licdn\\.com/dms/image/.*",
         types: ["image"],
         conditionLogic: "OR",
-        active: true,
+        active: false,
         isSystem: true
     },
     {
@@ -16,7 +16,7 @@ const SYSTEM_RULES = [
         regex: "^https://dms\\.licdn\\.com/playlist/vid/.*",
         types: [],
         conditionLogic: "OR",
-        active: true,
+        active: false,
         isSystem: true
     }
 ];
