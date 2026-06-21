@@ -1,4 +1,4 @@
-import Alpine from './main.js' // CRITICAL: Must have .js extension
+import Alpine from './main.js'
 
 Alpine.data('ruleManager', () => ({
     rules: [],
@@ -8,24 +8,37 @@ Alpine.data('ruleManager', () => ({
     enableScript: false,
     regex: "",
     types: [],
-    methods: [], // Add this line
+    methods: [],
     conditionLogic: "OR",
-    scriptCode: "",
+    scriptCodes: {
+        document_start: "",
+        document_end: "",
+        document_idle: "",
+        on_intercept: ""
+    },
     scriptTrigger: "document_idle",
     active: true,
     editingId: null,
     successMessage: "",
 
     get titleText() { return this.editingId ? 'Edit Rule' : 'Create Rule'; },
-
     formatTypes(types) { return types && types.length > 0 ? types.join(', ') : '(none)'; },
+
+    // Proxy scriptCode to scriptCodes[scriptTrigger]
+    get scriptCode() { return this.scriptCodes[this.scriptTrigger] || ""; },
+    set scriptCode(val) { this.scriptCodes[this.scriptTrigger] = val; },
+
+    get enabledTriggers() {
+        return Object.entries(this.scriptCodes)
+            .filter(([_, code]) => code.trim() !== "")
+            .map(([trigger]) => trigger);
+    },
 
     init() {
         const params = new URLSearchParams(window.location.search);
         if (params.has('domain')) this.domains = [params.get('domain').split('/')[0]];
         this.loadRules();
 
-        // Listen for background script updates in real-time
         chrome.storage.onChanged.addListener((changes, area) => {
             if (area === "local" && changes.rules) {
                 this.rules = changes.rules.newValue || [];
@@ -46,10 +59,9 @@ Alpine.data('ruleManager', () => ({
     async saveRule() {
         let cleanList = this.domains.map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0]).filter(d => d.length > 0);
         if (cleanList.length === 0) return alert("Please provide at least one Target Domain.");
-
         if (!this.enableBlock && !this.enableScript) return alert("You must enable at least one action: Block Requests or Execute Script.");
         if (this.enableBlock && !this.regex.trim() && this.types.length === 0) return alert("Blocking enabled: Provide a Regex or Resource Type.");
-        if (this.enableScript && !this.scriptCode.trim()) return alert("Script enabled: Please provide custom JavaScript code.");
+        if (this.enableScript && this.enabledTriggers.length === 0) return alert("Script enabled: Please provide JavaScript code for at least one trigger.");
 
         let combinedDomains = cleanList.join(', ');
 
@@ -61,8 +73,7 @@ Alpine.data('ruleManager', () => ({
             types: this.types,
             methods: this.methods,
             conditionLogic: this.conditionLogic,
-            scriptCode: this.scriptCode.trim(),
-            scriptTrigger: this.scriptTrigger,
+            scriptCodes: { ...this.scriptCodes },
             active: this.active
         };
 
@@ -92,7 +103,10 @@ Alpine.data('ruleManager', () => ({
             this.types = rule.types || [];
             this.methods = rule.methods || [];
             this.conditionLogic = rule.conditionLogic || "OR";
-            this.scriptCode = rule.scriptCode || "";
+            // Support legacy single scriptCode format
+            this.scriptCodes = rule.scriptCodes
+                ? { ...{ document_start: "", document_end: "", document_idle: "", on_intercept: "" }, ...rule.scriptCodes }
+                : { document_start: "", document_end: "", document_idle: rule.scriptCode || "", on_intercept: "" };
             this.scriptTrigger = rule.scriptTrigger || "document_idle";
             this.active = rule.active;
         }
@@ -101,7 +115,6 @@ Alpine.data('ruleManager', () => ({
     async deleteRule(id) {
         const rule = this.rules.find(r => r.id === id);
         if (rule && rule.isSystem) return alert("System rules cannot be deleted.");
-
         if (confirm("Are you sure you want to delete this rule?")) {
             this.rules = this.rules.filter(r => r.id !== id);
             await chrome.storage.local.set({ rules: JSON.parse(JSON.stringify(this.rules)) });
@@ -125,9 +138,10 @@ Alpine.data('ruleManager', () => ({
         this.types = [];
         this.methods = [];
         this.conditionLogic = "OR";
-        this.scriptCode = "";
+        this.scriptCodes = { document_start: "", document_end: "", document_idle: "", on_intercept: "" };
         this.scriptTrigger = "document_idle";
         this.active = true;
     }
 }));
+
 Alpine.start();

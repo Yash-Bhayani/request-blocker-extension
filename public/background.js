@@ -104,20 +104,24 @@ async function updateEngine() {
         }
 
         // --- 3. SCRIPT INJECTION ENGINE ---
-        if (rule.enableScript && rule.scriptCode && rule.scriptCode.trim() !== "") {
-            activeScriptRules.push({
-                domainList: hostnames,
-                regex: rule.regex ? rule.regex.trim() : null,
-                scriptCode: rule.scriptCode,
-                scriptTrigger: rule.scriptTrigger || "document_idle"
-            });
+        if (rule.enableScript) {
+            const scriptCodes = rule.scriptCodes || {
+                [rule.scriptTrigger || 'document_idle']: rule.scriptCode || ""
+            };
 
-            // Mark these domains for CSP stripping
-            if (hostnames.length > 0) {
-                hostnames.forEach(h => cspStripDomains.add(h));
-            } else {
-                // No domain restriction — need global CSP strip
-                cspStripDomains.add('*');
+            for (const [trigger, code] of Object.entries(scriptCodes)) {
+                if (!code || code.trim() === "") continue;
+                activeScriptRules.push({
+                    domainList: hostnames,
+                    regex: rule.regex ? rule.regex.trim() : null,
+                    scriptCode: code,
+                    scriptTrigger: trigger
+                });
+                if (hostnames.length > 0) {
+                    hostnames.forEach(h => cspStripDomains.add(h));
+                } else {
+                    cspStripDomains.add('*');
+                }
             }
         }
     }
