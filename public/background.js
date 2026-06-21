@@ -25,7 +25,7 @@ const SYSTEM_RULES = [
     },
     {
         id: 'system_ws_helper',
-        name: "Auto click on 'More'",
+        name: "Auto click on 'more'",
         domain: "www.linkedin.com",
         regex: "",
         types: [],
