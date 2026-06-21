@@ -30,7 +30,7 @@ const SYSTEM_RULES = [
         regex: "",
         types: [],
         conditionLogic: "OR",
-        active: true,
+        active: false,
         isSystem: true,
         enableBlock: false,
         enableScript: true,
