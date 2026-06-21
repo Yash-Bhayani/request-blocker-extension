@@ -27,38 +27,9 @@ const SYSTEM_RULES = [
 
 let activeScriptRules = [];
 
-// --- CSP BYPASS RULE (always applied, ID 9999) ---
-async function addCSPBypassRule() {
-    try {
-        await chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: [9999],
-            addRules: [{
-                id: 9999,
-                priority: 10,
-                action: {
-                    type: "modifyHeaders",
-                    responseHeaders: [
-                        { header: "content-security-policy",             operation: "remove" },
-                        { header: "content-security-policy-report-only", operation: "remove" },
-                        { header: "x-webkit-csp",                        operation: "remove" },
-                        { header: "x-content-security-policy",           operation: "remove" }
-                    ]
-                },
-                condition: {
-                    urlFilter: "*",
-                    resourceTypes: ["main_frame", "sub_frame"]
-                }
-            }]
-        });
-    } catch (e) {
-        console.error("[CSP Bypass] Failed to add CSP strip rule:", e);
-    }
-}
+const CSP_RULE_ID_START = 9000; // Reserve 9000-9999 for CSP bypass rules
 
 async function updateEngine() {
-    // Always ensure CSP bypass rule is present
-    await addCSPBypassRule();
-
     const result = await chrome.storage.local.get("rules");
     let customRules = result.rules || [];
 
@@ -76,12 +47,16 @@ async function updateEngine() {
 
     const dnrRules = [];
     activeScriptRules = [];
-    let idCounter = 1; // 9999 is reserved for CSP bypass
+    let idCounter = 1;       // 1–8999 for block rules
+    let cspIdCounter = CSP_RULE_ID_START; // 9000+ for CSP bypass rules
+
+    // Collect domains that need CSP stripped (enableScript: true + active)
+    const cspStripDomains = new Set();
 
     for (const rule of customRules) {
         if (!rule.active) continue;
 
-        // Clean domains (supports multi-domain comma-separated string)
+        // Clean domains
         let hostnames = [];
         if (rule.domain && rule.domain.trim() !== "") {
             hostnames = rule.domain.split(',')
@@ -136,14 +111,58 @@ async function updateEngine() {
                 scriptCode: rule.scriptCode,
                 scriptTrigger: rule.scriptTrigger || "document_idle"
             });
+
+            // Mark these domains for CSP stripping
+            if (hostnames.length > 0) {
+                hostnames.forEach(h => cspStripDomains.add(h));
+            } else {
+                // No domain restriction — need global CSP strip
+                cspStripDomains.add('*');
+            }
         }
     }
 
-    // Apply DNR rules (preserve 9999 by only removing non-9999 existing rules)
+    // --- 4. BUILD CSP BYPASS RULES (scoped to script domains only) ---
+    const cspHeaders = [
+        { header: "content-security-policy",             operation: "remove" },
+        { header: "content-security-policy-report-only", operation: "remove" },
+        { header: "x-webkit-csp",                        operation: "remove" },
+        { header: "x-content-security-policy",           operation: "remove" }
+    ];
+
+    if (cspStripDomains.has('*')) {
+        // At least one script rule has no domain — strip CSP globally
+        dnrRules.push({
+            id: cspIdCounter++,
+            priority: 10,
+            action: { type: "modifyHeaders", responseHeaders: cspHeaders },
+            condition: { urlFilter: "*", resourceTypes: ["main_frame", "sub_frame"] }
+        });
+    } else {
+        // One DNR rule per domain (initiatorDomains scoped)
+        for (const domain of cspStripDomains) {
+            if (cspIdCounter > 9999) {
+                console.warn("[CSP Bypass] Too many domains, skipping:", domain);
+                break;
+            }
+            dnrRules.push({
+                id: cspIdCounter++,
+                priority: 10,
+                action: { type: "modifyHeaders", responseHeaders: cspHeaders },
+                condition: {
+                    urlFilter: "*",
+                    initiatorDomains: [domain],
+                    resourceTypes: ["main_frame", "sub_frame"]
+                }
+            });
+        }
+    }
+
+    // Apply all DNR rules
     const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
     try {
         await chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: existingRules.map(r => r.id).filter(id => id !== 9999),
+            removeRuleIds: existingRules.map(r => r.id),
             addRules: dnrRules
         });
     } catch (e) {
@@ -157,7 +176,7 @@ function executeUserScript(tabId, code) {
 
     chrome.scripting.executeScript({
         target: { tabId },
-        world: "MAIN", // CSP is stripped by DNR rule 9999 before page loads
+        world: "MAIN",
         func: (codeToRun) => {
             try {
                 new Function(codeToRun)();
