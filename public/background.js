@@ -122,7 +122,7 @@ async function updateEngine() {
         }
     }
 
-    // --- 4. BUILD CSP BYPASS RULES (scoped to script domains only) ---
+    // --- 4. BUILD CSP BYPASS RULES ---
     const cspHeaders = [
         { header: "content-security-policy",             operation: "remove" },
         { header: "content-security-policy-report-only", operation: "remove" },
@@ -130,31 +130,41 @@ async function updateEngine() {
         { header: "x-content-security-policy",           operation: "remove" }
     ];
 
-    if (cspStripDomains.has('*')) {
-        // At least one script rule has no domain — strip CSP globally
-        dnrRules.push({
-            id: cspIdCounter++,
-            priority: 10,
-            action: { type: "modifyHeaders", responseHeaders: cspHeaders },
-            condition: { urlFilter: "*", resourceTypes: ["main_frame", "sub_frame"] }
-        });
-    } else {
-        // One DNR rule per domain (initiatorDomains scoped)
-        for (const domain of cspStripDomains) {
-            if (cspIdCounter > 9999) {
-                console.warn("[CSP Bypass] Too many domains, skipping:", domain);
-                break;
-            }
+// Always build a global rule if ANY script rule is active
+    if (cspStripDomains.size > 0) {
+        if (cspStripDomains.has('*')) {
+            // Script rule with no domain — must be global
             dnrRules.push({
                 id: cspIdCounter++,
                 priority: 10,
                 action: { type: "modifyHeaders", responseHeaders: cspHeaders },
-                condition: {
-                    urlFilter: "*",
-                    initiatorDomains: [domain],
-                    resourceTypes: ["main_frame", "sub_frame"]
-                }
+                condition: { urlFilter: "*", resourceTypes: ["main_frame", "sub_frame"] }
             });
+        } else {
+            // One rule per domain — try both www and non-www variants
+            const expandedDomains = new Set();
+            for (const domain of cspStripDomains) {
+                expandedDomains.add(domain);
+                // Add bare domain if www.x.com was given, and vice versa
+                if (domain.startsWith('www.')) {
+                    expandedDomains.add(domain.slice(4));
+                } else {
+                    expandedDomains.add(`www.${domain}`);
+                }
+            }
+
+            for (const domain of expandedDomains) {
+                if (cspIdCounter > 9999) break;
+                dnrRules.push({
+                    id: cspIdCounter++,
+                    priority: 10,
+                    action: { type: "modifyHeaders", responseHeaders: cspHeaders },
+                    condition: {
+                        urlFilter: `*://*.${domain.replace(/^www\./, '')}/*`,
+                        resourceTypes: ["main_frame", "sub_frame"]
+                    }
+                });
+            }
         }
     }
 
