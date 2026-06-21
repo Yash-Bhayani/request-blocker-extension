@@ -20,14 +20,16 @@ Alpine.data('ruleManager', () => ({
     scriptTrigger: "document_idle",
     active: true,
     editingId: null,
-    viewingId: null,       // ← new
+    viewingId: null,
     successMessage: "",
+    enableCSS: false,
+    cssCode: "",
 
     get titleText() {
         if (this.viewingId) return 'View Rule';
         return this.editingId ? 'Edit Rule' : 'Create Rule';
     },
-    get isReadOnly() { return !!this.viewingId; },   // ← new
+    get isReadOnly() { return !!this.viewingId; },
 
     formatTypes(types) { return types && types.length > 0 ? types.join(', ') : '(none)'; },
 
@@ -69,7 +71,7 @@ Alpine.data('ruleManager', () => ({
         let cleanList = this.domains.map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0]).filter(d => d.length > 0);
         if (cleanList.length === 0) return alert("Please provide at least one Target Domain.");
         if (!this.ruleName.trim()) return alert("Please provide a Rule Name.");
-        if (!this.enableBlock && !this.enableScript) return alert("You must enable at least one action: Block Requests or Execute Script.");
+        if (!this.enableBlock && !this.enableScript && !this.enableCSS) return alert("You must enable at least one action: Block Requests or Execute Script or Execute CSS.");
         if (this.enableBlock && !this.regex.trim() && this.types.length === 0) return alert("Blocking enabled: Provide a Regex or Resource Type.");
         if (this.enableScript && this.enabledTriggers.length === 0) return alert("Script enabled: Please provide JavaScript code for at least one trigger.");
 
@@ -85,7 +87,9 @@ Alpine.data('ruleManager', () => ({
             methods: this.methods,
             conditionLogic: this.conditionLogic,
             scriptCodes: { ...this.scriptCodes },
-            active: this.active
+            active: this.active,
+            enableCSS: this.enableCSS,
+            cssCode: this.cssCode.trim(),
         };
 
         if (this.editingId) {
@@ -112,6 +116,7 @@ Alpine.data('ruleManager', () => ({
         this.domains = rule.domain ? rule.domain.split(', ') : [""];
         this.enableBlock = rule.enableBlock !== false;
         this.enableScript = rule.enableScript || false;
+        this.enableCSS = rule.enableCSS || false;          // ← add this
         this.regex = rule.regex || "";
         this.types = rule.types || [];
         this.methods = rule.methods || [];
@@ -120,8 +125,8 @@ Alpine.data('ruleManager', () => ({
             ? { ...{ document_start: "", document_end: "", document_idle: "", on_intercept: "" }, ...rule.scriptCodes }
             : { document_start: "", document_end: "", document_idle: rule.scriptCode || "", on_intercept: "" };
         this.scriptTrigger = this.enabledTriggers[0] || "document_idle";
+        this.cssCode = rule.cssCode || "";                 // ← add this
         this.active = rule.active;
-        // Scroll form into view
         this.$nextTick(() => document.querySelector('.card').scrollIntoView({ behavior: 'smooth' }));
     },
 
@@ -143,6 +148,8 @@ Alpine.data('ruleManager', () => ({
                 : { document_start: "", document_end: "", document_idle: rule.scriptCode || "", on_intercept: "" };
             this.scriptTrigger = rule.scriptTrigger || "document_idle";
             this.active = rule.active;
+            this.enableCSS = rule.enableCSS || false;
+            this.cssCode = rule.cssCode || "";
         }
     },
 
@@ -177,6 +184,8 @@ Alpine.data('ruleManager', () => ({
         this.scriptCodes = { document_start: "", document_end: "", document_idle: "", on_intercept: "" };
         this.scriptTrigger = "document_idle";
         this.active = true;
+        this.enableCSS = false;
+        this.cssCode = "";
     }
 }));
 

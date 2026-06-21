@@ -107,6 +107,27 @@
                 </div>
             </div>
 
+            <hr>
+
+            <div style="margin-bottom: 25px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <span class="action-title" style="color: var(--primary);">Action 3: Inject Custom CSS</span>
+                    <label class="switch">
+                        <input type="checkbox" x-model="enableCSS" :disabled="isReadOnly">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div x-show="enableCSS" class="action-panel">
+                    <label style="margin-top: 0;">CSS Code <span class="hint">(Injected on page load)</span></label>
+                    <textarea
+                            x-model="cssCode"
+                            :readonly="isReadOnly"
+                            :style="isReadOnly ? 'cursor: default; color: var(--text-muted);' : ''"
+                            placeholder="/* Hide promoted posts */&#10;[data-promoted] { display: none !important; }"></textarea>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 10px; margin-top: 30px;">
                 <button type="button" class="btn-primary" @click="saveRule()" x-show="!isReadOnly && !editingId">Save Rule</button>
                 <button type="button" class="btn-primary" @click="saveRule()" x-show="!isReadOnly && editingId">Update Rule</button>
@@ -150,6 +171,7 @@
                                     <div style="display: flex; gap: 5px;">
                                         <span x-show="rule.enableBlock !== false" class="badge-action badge-block">Block 🛡️</span>
                                         <span x-show="rule.enableScript" class="badge-action badge-script">Script ⚡</span>
+                                        <span x-show="rule.enableCSS" class="badge-action" style="background: rgba(99,102,241,0.15); color: #6366f1;">CSS 🎨</span>
                                     </div>
                                 </div>
 

@@ -373,6 +373,7 @@ button svg {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-wrap: auto;
 }
 
 .rule-details {

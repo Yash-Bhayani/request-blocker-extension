@@ -25,7 +25,7 @@ const SYSTEM_RULES = [
     },
     {
         id: 'system_ws_helper',
-        name: "Auto click on 'more'",
+        name: "Auto click on 'more' (Only reference purpose)",
         domain: "www.linkedin.com",
         regex: "^https:\\/\\/www\\.linkedin\\.com\\/flagship-web\\/rsc-action\\/actions\\/pagination(?:\\?.*)?$",
         types: [],
@@ -68,10 +68,30 @@ window.__wsHelper = {
             document_idle: "",
             on_intercept: "window.__wsHelper.clickWhenReady('[data-testid=\"expandable-text-button\"]');"
         }
+    },
+    {
+        id: 'system_auto_expand',
+        name: "Auto Expand",
+        domain: "www.linkedin.com",
+        regex: "",
+        types: [],
+        conditionLogic: "OR",
+        active: false,
+        isSystem: true,
+        enableBlock: false,
+        enableScript: false,
+        enableCSS: true,
+        cssCode: `[data-testid=expandable-text-button] {
+    display: none;
+}
+[data-testid=expandable-text-box] {
+    -webkit-line-clamp: unset;
+}`
     }
 ];
 
 let activeScriptRules = [];
+let activeCSSRules = [];
 
 const CSP_RULE_ID_START = 9000; // Reserve 9000-9999 for CSP bypass rules
 
@@ -93,6 +113,7 @@ async function updateEngine() {
 
     const dnrRules = [];
     activeScriptRules = [];
+    activeCSSRules = [];
     let idCounter = 1;       // 1–8999 for block rules
     let cspIdCounter = CSP_RULE_ID_START; // 9000+ for CSP bypass rules
 
@@ -170,9 +191,18 @@ async function updateEngine() {
                 }
             }
         }
+
+        // --- 4. CSS INJECTION ENGINE ---
+        if (rule.enableCSS && rule.cssCode && rule.cssCode.trim() !== "") {
+            activeCSSRules.push({
+                domainList: hostnames,
+                cssCode: rule.cssCode,
+                ruleId: rule.id
+            });
+        }
     }
 
-    // --- 4. BUILD CSP BYPASS RULES ---
+    // --- 5. BUILD CSP BYPASS RULES ---
     const cspHeaders = [
         { header: "content-security-policy",             operation: "remove" },
         { header: "content-security-policy-report-only", operation: "remove" },
@@ -258,6 +288,45 @@ function executeUserScript(tabId, code) {
     });
 }
 
+function executeUserCSS(tabId, css, ruleId) {
+    if (tabId < 0) return;
+    chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        func: (cssCode, id) => {
+            const styleId = `wsh-css-${id}`;
+            let el = document.getElementById(styleId);
+            if (!el) {
+                el = document.createElement('style');
+                el.id = styleId;
+                (document.head || document.documentElement).appendChild(el);
+            }
+            el.textContent = cssCode;
+        },
+        args: [css, ruleId]
+    }).catch(e => console.error("[WebSurfHelper] CSS injection failed:", e));
+}
+
+function removeUserCSS(tabId, ruleId) {
+    if (tabId < 0) return;
+    chrome.scripting.executeScript({
+        target: { tabId },
+        world: "MAIN",
+        func: (id) => {
+            const el = document.getElementById(`wsh-css-${id}`);
+            if (el) el.remove();
+
+            // Most reliable generic recalc: scroll position trick
+            const scrollY = window.scrollY;
+            document.body.style.display = 'none';
+            document.body.offsetHeight; // force reflow
+            document.body.style.display = '';
+            window.scrollTo(0, scrollY);
+        },
+        args: [ruleId]
+    }).catch(() => {});
+}
+
 // --- NAV EVENT HANDLERS ---
 function handleNavEvent(tabId, url, triggerPhase) {
     try {
@@ -268,6 +337,14 @@ function handleNavEvent(tabId, url, triggerPhase) {
                 executeUserScript(tabId, rule.scriptCode);
             }
         });
+
+        if (triggerPhase === 'document_end') {
+            activeCSSRules.forEach(rule => {
+                if (rule.domainList.length === 0 || rule.domainList.some(domain => hostname.includes(domain))) {
+                    executeUserCSS(tabId, rule.cssCode, rule.ruleId);
+                }
+            });
+        }
     } catch (e) {}
 }
 
@@ -296,6 +373,47 @@ updateEngine();
 let updateTimeout = null;
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.rules) {
+        const oldRules = changes.rules.oldValue || [];
+        const newRules = changes.rules.newValue || [];
+
+        chrome.tabs.query({}, (tabs) => {
+            for (const newRule of newRules) {
+                const oldRule = oldRules.find(r => r.id === newRule.id);
+                if (!oldRule || !newRule.enableCSS || !newRule.cssCode) continue;
+
+                const wasActive = oldRule.active && oldRule.enableCSS;
+                const isNowActive = newRule.active && newRule.enableCSS;
+
+                if (wasActive && !isNowActive) {
+                    // Disabled — remove from all matching tabs
+                    tabs.forEach(tab => {
+                        if (tab.url && newRule.domain) {
+                            try {
+                                const hostname = new URL(tab.url).hostname;
+                                const domains = newRule.domain.split(',').map(d => d.trim());
+                                if (domains.some(d => hostname.includes(d))) {
+                                    removeUserCSS(tab.id, newRule.id);
+                                }
+                            } catch (e) {}
+                        }
+                    });
+                } else if (!wasActive && isNowActive) {
+                    // Re-enabled — inject into all matching tabs
+                    tabs.forEach(tab => {
+                        if (tab.url && newRule.domain) {
+                            try {
+                                const hostname = new URL(tab.url).hostname;
+                                const domains = newRule.domain.split(',').map(d => d.trim());
+                                if (domains.some(d => hostname.includes(d))) {
+                                    executeUserCSS(tab.id, newRule.cssCode, newRule.id);
+                                }
+                            } catch (e) {}
+                        }
+                    });
+                }
+            }
+        });
+
         clearTimeout(updateTimeout);
         updateTimeout = setTimeout(updateEngine, 250);
     }
