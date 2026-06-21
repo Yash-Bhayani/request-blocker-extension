@@ -3,6 +3,7 @@ import Alpine from './main.js'
 Alpine.data('ruleManager', () => ({
     rules: [],
     domains: [""],
+    ruleName: "",
 
     enableBlock: true,
     enableScript: false,
@@ -19,14 +20,19 @@ Alpine.data('ruleManager', () => ({
     scriptTrigger: "document_idle",
     active: true,
     editingId: null,
+    viewingId: null,       // ← new
     successMessage: "",
 
-    get titleText() { return this.editingId ? 'Edit Rule' : 'Create Rule'; },
+    get titleText() {
+        if (this.viewingId) return 'View Rule';
+        return this.editingId ? 'Edit Rule' : 'Create Rule';
+    },
+    get isReadOnly() { return !!this.viewingId; },   // ← new
+
     formatTypes(types) { return types && types.length > 0 ? types.join(', ') : '(none)'; },
 
-    // Proxy scriptCode to scriptCodes[scriptTrigger]
     get scriptCode() { return this.scriptCodes[this.scriptTrigger] || ""; },
-    set scriptCode(val) { this.scriptCodes[this.scriptTrigger] = val; },
+    set scriptCode(val) { if (!this.isReadOnly) this.scriptCodes[this.scriptTrigger] = val; },
 
     get enabledTriggers() {
         return Object.entries(this.scriptCodes)
@@ -48,8 +54,11 @@ Alpine.data('ruleManager', () => ({
         this.$watch('successMessage', (val) => { if (val) setTimeout(() => this.successMessage = "", 3000); });
     },
 
-    addDomainField() { this.domains.push(""); },
-    removeDomainField(index) { if (this.domains.length > 1) this.domains.splice(index, 1); else this.domains = [""]; },
+    addDomainField() { if (!this.isReadOnly) this.domains.push(""); },
+    removeDomainField(index) {
+        if (this.isReadOnly) return;
+        if (this.domains.length > 1) this.domains.splice(index, 1); else this.domains = [""];
+    },
 
     async loadRules() {
         const result = await chrome.storage.local.get("rules");
@@ -59,6 +68,7 @@ Alpine.data('ruleManager', () => ({
     async saveRule() {
         let cleanList = this.domains.map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0]).filter(d => d.length > 0);
         if (cleanList.length === 0) return alert("Please provide at least one Target Domain.");
+        if (!this.ruleName.trim()) return alert("Please provide a Rule Name.");
         if (!this.enableBlock && !this.enableScript) return alert("You must enable at least one action: Block Requests or Execute Script.");
         if (this.enableBlock && !this.regex.trim() && this.types.length === 0) return alert("Blocking enabled: Provide a Regex or Resource Type.");
         if (this.enableScript && this.enabledTriggers.length === 0) return alert("Script enabled: Please provide JavaScript code for at least one trigger.");
@@ -66,6 +76,7 @@ Alpine.data('ruleManager', () => ({
         let combinedDomains = cleanList.join(', ');
 
         const ruleData = {
+            name: this.ruleName.trim(),
             domain: combinedDomains,
             enableBlock: this.enableBlock,
             enableScript: this.enableScript,
@@ -84,7 +95,7 @@ Alpine.data('ruleManager', () => ({
             }
             this.editingId = null;
         } else {
-            this.rules.push({ id: Date.now(), name: `Rule for ${combinedDomains}`, ...ruleData, isSystem: false });
+            this.rules.push({ id: Date.now(), ...ruleData, isSystem: false });
         }
 
         await chrome.storage.local.set({ rules: JSON.parse(JSON.stringify(this.rules)) });
@@ -92,10 +103,34 @@ Alpine.data('ruleManager', () => ({
         this.clearForm();
     },
 
+    viewRule(id) {
+        const rule = this.rules.find(r => r.id === id);
+        if (!rule) return;
+        this.viewingId = rule.id;
+        this.editingId = null;
+        this.ruleName = rule.name || "";
+        this.domains = rule.domain ? rule.domain.split(', ') : [""];
+        this.enableBlock = rule.enableBlock !== false;
+        this.enableScript = rule.enableScript || false;
+        this.regex = rule.regex || "";
+        this.types = rule.types || [];
+        this.methods = rule.methods || [];
+        this.conditionLogic = rule.conditionLogic || "OR";
+        this.scriptCodes = rule.scriptCodes
+            ? { ...{ document_start: "", document_end: "", document_idle: "", on_intercept: "" }, ...rule.scriptCodes }
+            : { document_start: "", document_end: "", document_idle: rule.scriptCode || "", on_intercept: "" };
+        this.scriptTrigger = this.enabledTriggers[0] || "document_idle";
+        this.active = rule.active;
+        // Scroll form into view
+        this.$nextTick(() => document.querySelector('.card').scrollIntoView({ behavior: 'smooth' }));
+    },
+
     editRule(id) {
         const rule = this.rules.find(r => r.id === id);
         if (rule && !rule.isSystem) {
+            this.viewingId = null;
             this.editingId = rule.id;
+            this.ruleName = rule.name || "";
             this.domains = rule.domain ? rule.domain.split(', ') : [""];
             this.enableBlock = rule.enableBlock !== false;
             this.enableScript = rule.enableScript || false;
@@ -103,7 +138,6 @@ Alpine.data('ruleManager', () => ({
             this.types = rule.types || [];
             this.methods = rule.methods || [];
             this.conditionLogic = rule.conditionLogic || "OR";
-            // Support legacy single scriptCode format
             this.scriptCodes = rule.scriptCodes
                 ? { ...{ document_start: "", document_end: "", document_idle: "", on_intercept: "" }, ...rule.scriptCodes }
                 : { document_start: "", document_end: "", document_idle: rule.scriptCode || "", on_intercept: "" };
@@ -131,6 +165,8 @@ Alpine.data('ruleManager', () => ({
 
     clearForm() {
         this.editingId = null;
+        this.viewingId = null;
+        this.ruleName = "";
         this.domains = [""];
         this.enableBlock = true;
         this.enableScript = false;

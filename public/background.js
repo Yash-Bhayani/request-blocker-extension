@@ -22,6 +22,52 @@ const SYSTEM_RULES = [
         isSystem: true,
         enableBlock: true,
         enableScript: false
+    },
+    {
+        id: 'system_ws_helper',
+        name: "Auto click on 'More'",
+        domain: "www.linkedin.com",
+        regex: "",
+        types: [],
+        conditionLogic: "OR",
+        active: true,
+        isSystem: true,
+        enableBlock: false,
+        enableScript: true,
+        scriptTrigger: "document_start",
+        scriptCodes: {
+            document_start: `
+window.__wsHelper = {
+    waitForElement(selector, callback, timeout = 10000) {
+        const existing = document.querySelectorAll(selector);
+        if (existing.length > 0) { existing.forEach(callback); return; }
+
+        const observer = new MutationObserver(() => {
+            const els = document.querySelectorAll(selector);
+            if (els.length > 0) {
+                observer.disconnect();
+                clearTimeout(timer);
+                els.forEach(callback);
+            }
+        });
+
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+
+        const timer = setTimeout(() => {
+            observer.disconnect();
+            console.warn('[WSHelper] waitForElement timed out:', selector);
+        }, timeout);
+    },
+
+    clickWhenReady(selector, timeout = 10000) {
+        this.waitForElement(selector, el => el.click(), timeout);
+    }
+};
+`.trim(),
+            document_end: "",
+            document_idle: "",
+            on_intercept: "window.__wsHelper.clickWhenReady('[data-testid=\"expandable-text-button\"]');"
+        }
     }
 ];
 

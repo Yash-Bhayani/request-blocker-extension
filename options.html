@@ -25,28 +25,31 @@
                 This extension uses modern <strong>Manifest V3</strong> architecture for maximum privacy and performance. Network-level blocking can only be applied to <strong>root domains</strong>. You can add multiple domains using the dynamic fields below.
             </div>
 
-            <label>Target Domains</label>
+            <label>Rule Name</label>
+            <input type="text" x-model="ruleName" placeholder="My LinkedIn Rule" :disabled="isReadOnly">
+
+            <label style="margin-top: 15px;">Target Domains</label>
             <template x-for="(dom, index) in domains" :key="index">
                 <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                    <input type="text" x-model="domains[index]" placeholder="example.com" style="flex: 1; margin: 0;">
-                    <button type="button" @click="removeDomainField(index)" class="btn-danger" style="padding: 12px; margin: 0; display: flex; align-items: center; justify-content: center;" title="Remove domain">
+                    <input type="text" x-model="domains[index]" placeholder="example.com" style="flex: 1; margin: 0;" :disabled="isReadOnly">
+                    <button type="button" @click="removeDomainField(index)" class="btn-danger" :disabled="isReadOnly" style="padding: 12px; margin: 0; display: flex; align-items: center; justify-content: center;" title="Remove domain">
                         <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;"><path d="M19 13H5v-2h14v2z"/></svg>
                     </button>
                 </div>
             </template>
-            <button type="button" @click="addDomainField()" class="btn-outline" style="margin-top: 5px; margin-bottom: 20px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px;">
+            <button type="button" @click="addDomainField()" class="btn-outline" :disabled="isReadOnly" style="margin-top: 5px; margin-bottom: 20px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px;">
                 ➕ Add Another Domain
             </button>
 
             <div class="action-panel" style="border-left-color: var(--text-muted); background-color: transparent;">
                 <label style="margin-top: 0;">Regex Filter <span class="hint">(Optional - e.g., ^https://api\.example\.com/.*)</span></label>
-                <input type="text" x-model="regex" placeholder="^https://api\.example\.com/.*">
+                <input type="text" x-model="regex" placeholder="^https://api\.example\.com/.*" :disabled="isReadOnly">
 
                 <label style="margin-top: 15px;">HTTP Methods <span class="hint">(Optional)</span></label>
                 <div class="checkbox-group">
                     <template x-for="method in ['get', 'post', 'put', 'delete', 'patch', 'head', 'options']">
                         <label class="type-label">
-                            <input type="checkbox" x-model="methods" :value="method"> <span x-text="method.toUpperCase()"></span>
+                            <input type="checkbox" x-model="methods" :value="method" :disabled="isReadOnly"> <span x-text="method.toUpperCase()"></span>
                         </label>
                     </template>
                 </div>
@@ -55,13 +58,13 @@
                 <div class="checkbox-group">
                     <template x-for="type in ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'media', 'websocket', 'other']">
                         <label class="type-label">
-                            <input type="checkbox" x-model="types" :value="type"> <span x-text="type"></span>
+                            <input type="checkbox" x-model="types" :value="type" :disabled="isReadOnly"> <span x-text="type"></span>
                         </label>
                     </template>
                 </div>
 
                 <label style="margin-top: 15px;">Condition Logic</label>
-                <select x-model="conditionLogic">
+                <select x-model="conditionLogic" :disabled="isReadOnly">
                     <option value="OR">OR (Trigger if Regex OR Type matches)</option>
                     <option value="AND">AND (Trigger ONLY if Regex AND Type matches)</option>
                 </select>
@@ -73,7 +76,7 @@
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <span class="action-title action-blue">Action 1: Block Network Requests</span>
                     <label class="switch">
-                        <input type="checkbox" x-model="enableBlock">
+                        <input type="checkbox" x-model="enableBlock" :disabled="isReadOnly">
                         <span class="slider round"></span>
                     </label>
                 </div>
@@ -85,7 +88,7 @@
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                     <span class="action-title action-yellow">Action 2: Execute Custom JavaScript</span>
                     <label class="switch">
-                        <input type="checkbox" x-model="enableScript">
+                        <input type="checkbox" x-model="enableScript" :disabled="isReadOnly">
                         <span class="slider round"></span>
                     </label>
                 </div>
@@ -100,13 +103,15 @@
                     </select>
 
                     <label style="margin-top: 15px;">JavaScript Code</label>
-                    <textarea x-model="scriptCode" placeholder="console.log('Hello from Web Surf Helper!');&#10;document.body.style.backgroundColor = 'red';"></textarea>
+                    <textarea x-model="scriptCode" :disabled="isReadOnly" placeholder="console.log('Hello from Web Surf Helper!');&#10;document.body.style.backgroundColor = 'red';"></textarea>
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 30px;">
-                <button type="button" class="btn-primary" @click="saveRule()" x-text="editingId ? 'Update Rule' : 'Save Rule'"></button>
-                <button type="button" class="btn-secondary" x-show="editingId" @click="clearForm()">Cancel Edit</button>
+                <button type="button" class="btn-primary" @click="saveRule()" x-show="!isReadOnly && !editingId">Save Rule</button>
+                <button type="button" class="btn-primary" @click="saveRule()" x-show="!isReadOnly && editingId">Update Rule</button>
+                <button type="button" class="btn-secondary" x-show="editingId && !isReadOnly" @click="clearForm()">Cancel Edit</button>
+                <button type="button" class="btn-secondary" x-show="isReadOnly" @click="clearForm()">Close</button>
             </div>
 
             <div class="success-message" x-show="successMessage" x-text="successMessage"></div>
@@ -167,15 +172,22 @@
                                         <code><span x-text="formatTypes(rule.types)"></span></code>
                                     </div>
                                     <div class="rule-detail-row" style="margin-top: 10px;">
-                                        <strong></strong> <!-- Empty spacer to align badge under text -->
+                                        <strong></strong>
                                         <span class="badge-logic" x-text="rule.conditionLogic || 'OR'"></span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="rule-actions" x-show="!rule.isSystem">
-                                <button type="button" class="btn-secondary btn-sm" @click="editRule(rule.id)">Edit</button>
-                                <button type="button" class="btn-danger btn-sm" @click="deleteRule(rule.id)">Delete</button>
+                            <div class="rule-actions">
+                                <template x-if="rule.isSystem">
+                                    <button type="button" class="btn-secondary btn-sm" @click="viewRule(rule.id)">View</button>
+                                </template>
+                                <template x-if="!rule.isSystem">
+                                    <div style="display: flex; gap: 6px;">
+                                        <button type="button" class="btn-secondary btn-sm" @click="editRule(rule.id)">Edit</button>
+                                        <button type="button" class="btn-danger btn-sm" @click="deleteRule(rule.id)">Delete</button>
+                                    </div>
+                                </template>
                             </div>
                         </div>
 
