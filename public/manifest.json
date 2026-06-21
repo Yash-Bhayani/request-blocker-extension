@@ -22,6 +22,7 @@
   "permissions": [
     "storage",
     "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
     "activeTab",
     "tabs",
     "scripting",

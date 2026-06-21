@@ -8,6 +8,7 @@ Alpine.data('ruleManager', () => ({
     enableScript: false,
     regex: "",
     types: [],
+    methods: [], // Add this line
     conditionLogic: "OR",
     scriptCode: "",
     scriptTrigger: "document_idle",
@@ -58,6 +59,7 @@ Alpine.data('ruleManager', () => ({
             enableScript: this.enableScript,
             regex: this.regex.trim(),
             types: this.types,
+            methods: this.methods,
             conditionLogic: this.conditionLogic,
             scriptCode: this.scriptCode.trim(),
             scriptTrigger: this.scriptTrigger,
@@ -88,6 +90,7 @@ Alpine.data('ruleManager', () => ({
             this.enableScript = rule.enableScript || false;
             this.regex = rule.regex || "";
             this.types = rule.types || [];
+            this.methods = rule.methods || [];
             this.conditionLogic = rule.conditionLogic || "OR";
             this.scriptCode = rule.scriptCode || "";
             this.scriptTrigger = rule.scriptTrigger || "document_idle";
@@ -120,6 +123,7 @@ Alpine.data('ruleManager', () => ({
         this.enableScript = false;
         this.regex = "";
         this.types = [];
+        this.methods = [];
         this.conditionLogic = "OR";
         this.scriptCode = "";
         this.scriptTrigger = "document_idle";

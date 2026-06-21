@@ -34,46 +34,53 @@
                     </button>
                 </div>
             </template>
-            <button type="button" @click="addDomainField()" class="btn-outline" style="margin-top: 5px; margin-bottom: 10px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px;">
+            <button type="button" @click="addDomainField()" class="btn-outline" style="margin-top: 5px; margin-bottom: 20px; padding: 6px 12px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px;">
                 ➕ Add Another Domain
             </button>
 
+            <div class="action-panel" style="border-left-color: var(--text-muted); background-color: transparent;">
+                <label style="margin-top: 0;">Regex Filter <span class="hint">(Optional - e.g., ^https://api\.example\.com/.*)</span></label>
+                <input type="text" x-model="regex" placeholder="^https://api\.example\.com/.*">
+
+                <label style="margin-top: 15px;">HTTP Methods <span class="hint">(Optional)</span></label>
+                <div class="checkbox-group">
+                    <template x-for="method in ['get', 'post', 'put', 'delete', 'patch', 'head', 'options']">
+                        <label class="type-label">
+                            <input type="checkbox" x-model="methods" :value="method"> <span x-text="method.toUpperCase()"></span>
+                        </label>
+                    </template>
+                </div>
+
+                <label style="margin-top: 15px;">Resource Types <span class="hint">(Optional)</span></label>
+                <div class="checkbox-group">
+                    <template x-for="type in ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'media', 'websocket', 'other']">
+                        <label class="type-label">
+                            <input type="checkbox" x-model="types" :value="type"> <span x-text="type"></span>
+                        </label>
+                    </template>
+                </div>
+
+                <label style="margin-top: 15px;">Condition Logic</label>
+                <select x-model="conditionLogic">
+                    <option value="OR">OR (Trigger if Regex OR Type matches)</option>
+                    <option value="AND">AND (Trigger ONLY if Regex AND Type matches)</option>
+                </select>
+            </div>
+
             <hr>
 
-            <!-- ACTION 1: BLOCK REQUESTS -->
             <div style="margin-bottom: 25px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
                     <span class="action-title action-blue">Action 1: Block Network Requests</span>
                     <label class="switch">
                         <input type="checkbox" x-model="enableBlock">
                         <span class="slider round"></span>
                     </label>
                 </div>
-
-                <div x-show="enableBlock" class="action-panel">
-                    <label style="margin-top: 0;">Regex Filter <span class="hint">(Optional - e.g., ^https://api\.example\.com/.*)</span></label>
-                    <input type="text" x-model="regex" placeholder="^https://api\.example\.com/.*">
-
-                    <label style="margin-top: 15px;">Resource Types <span class="hint">(Optional)</span></label>
-                    <div class="checkbox-group">
-                        <template x-for="type in ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'media', 'websocket', 'other']">
-                            <label class="type-label">
-                                <input type="checkbox" x-model="types" :value="type"> <span x-text="type"></span>
-                            </label>
-                        </template>
-                    </div>
-
-                    <label style="margin-top: 15px;">Condition Logic</label>
-                    <select x-model="conditionLogic">
-                        <option value="OR">OR (Block if Regex OR Type matches)</option>
-                        <option value="AND">AND (Block ONLY if Regex AND Type matches)</option>
-                    </select>
-                </div>
             </div>
 
             <hr>
 
-            <!-- ACTION 2: CUSTOM SCRIPT -->
             <div style="margin-bottom: 25px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                     <span class="action-title action-yellow">Action 2: Execute Custom JavaScript</span>
@@ -89,7 +96,7 @@
                         <option value="document_start">When page initially loads (document_start)</option>
                         <option value="document_end">When DOM is ready (document_end)</option>
                         <option value="document_idle">When page is fully loaded (document_idle)</option>
-                        <option value="on_intercept">When Network Interception occurs (Requires Block Rule above)</option>
+                        <option value="on_intercept">When Network Interception occurs</option>
                     </select>
 
                     <label style="margin-top: 15px;">JavaScript Code</label>
@@ -150,6 +157,10 @@
                                     <div class="rule-detail-row">
                                         <strong>Regex:</strong>
                                         <code><span x-text="rule.regex || '(none)'"></span></code>
+                                    </div>
+                                    <div class="rule-detail-row" x-show="rule.methods && rule.methods.length > 0">
+                                        <strong>Methods:</strong>
+                                        <code><span x-text="(rule.methods || []).join(', ').toUpperCase()"></span></code>
                                     </div>
                                     <div class="rule-detail-row">
                                         <strong>Types:</strong>

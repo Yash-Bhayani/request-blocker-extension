@@ -1,5 +1,3 @@
-// background.js
-
 const SYSTEM_RULES = [
     {
         id: 'system_linkedin_images',
@@ -8,10 +6,10 @@ const SYSTEM_RULES = [
         regex: "^https://media\\.licdn\\.com/dms/image/.*",
         types: ["image"],
         conditionLogic: "OR",
-        active: false, // Disabled by default as requested
+        active: false,
         isSystem: true,
-        enableBlock: true,  // New property for Web Surf Helper
-        enableScript: false // New property for Web Surf Helper
+        enableBlock: true,
+        enableScript: false
     },
     {
         id: 'system_linkedin_video',
@@ -29,7 +27,38 @@ const SYSTEM_RULES = [
 
 let activeScriptRules = [];
 
+// --- CSP BYPASS RULE (always applied, ID 9999) ---
+async function addCSPBypassRule() {
+    try {
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [9999],
+            addRules: [{
+                id: 9999,
+                priority: 10,
+                action: {
+                    type: "modifyHeaders",
+                    responseHeaders: [
+                        { header: "content-security-policy",             operation: "remove" },
+                        { header: "content-security-policy-report-only", operation: "remove" },
+                        { header: "x-webkit-csp",                        operation: "remove" },
+                        { header: "x-content-security-policy",           operation: "remove" }
+                    ]
+                },
+                condition: {
+                    urlFilter: "*",
+                    resourceTypes: ["main_frame", "sub_frame"]
+                }
+            }]
+        });
+    } catch (e) {
+        console.error("[CSP Bypass] Failed to add CSP strip rule:", e);
+    }
+}
+
 async function updateEngine() {
+    // Always ensure CSP bypass rule is present
+    await addCSPBypassRule();
+
     const result = await chrome.storage.local.get("rules");
     let customRules = result.rules || [];
 
@@ -46,13 +75,13 @@ async function updateEngine() {
     }
 
     const dnrRules = [];
-    activeScriptRules = []; // Reset script cache
-    let idCounter = 1;
+    activeScriptRules = [];
+    let idCounter = 1; // 9999 is reserved for CSP bypass
 
     for (const rule of customRules) {
         if (!rule.active) continue;
 
-        // Clean domains (Supports the multi-domain array)
+        // Clean domains (supports multi-domain comma-separated string)
         let hostnames = [];
         if (rule.domain && rule.domain.trim() !== "") {
             hostnames = rule.domain.split(',')
@@ -60,11 +89,14 @@ async function updateEngine() {
                 .filter(d => d.length > 0);
         }
 
-        // --- 2. THE ORIGINAL DNR BLOCKING ENGINE ---
-        // Defaults to true for older rules that don't have enableBlock set yet
+        // --- 2. DNR BLOCKING ENGINE ---
         if (rule.enableBlock !== false) {
             const baseCondition = {};
             if (hostnames.length > 0) baseCondition.initiatorDomains = hostnames;
+
+            if (rule.methods && rule.methods.length > 0) {
+                baseCondition.requestMethods = rule.methods;
+            }
 
             const hasRegex = rule.regex && rule.regex.trim() !== "";
             const hasTypes = rule.types && rule.types.length > 0;
@@ -74,7 +106,7 @@ async function updateEngine() {
                 let combinedCondition = { ...baseCondition };
                 if (hasRegex) {
                     let cleanRegex = rule.regex.trim();
-                    if (cleanRegex.startsWith('/') && cleanRegex.endsWith('/')) cleanRegex = cleanRegex.substring(1, cleanRegex.length - 1);
+                    if (cleanRegex.startsWith('/') && cleanRegex.endsWith('/')) cleanRegex = cleanRegex.slice(1, -1);
                     combinedCondition.regexFilter = cleanRegex;
                 }
                 if (hasTypes) combinedCondition.resourceTypes = rule.types;
@@ -84,7 +116,7 @@ async function updateEngine() {
             } else {
                 if (hasRegex) {
                     let cleanRegex = rule.regex.trim();
-                    if (cleanRegex.startsWith('/') && cleanRegex.endsWith('/')) cleanRegex = cleanRegex.substring(1, cleanRegex.length - 1);
+                    if (cleanRegex.startsWith('/') && cleanRegex.endsWith('/')) cleanRegex = cleanRegex.slice(1, -1);
                     dnrRules.push({ id: idCounter++, priority: 1, action: { type: "block" }, condition: { ...baseCondition, regexFilter: cleanRegex } });
                 }
                 if (hasTypes) {
@@ -96,7 +128,7 @@ async function updateEngine() {
             }
         }
 
-        // --- 3. THE NEW SCRIPT INJECTION ENGINE ---
+        // --- 3. SCRIPT INJECTION ENGINE ---
         if (rule.enableScript && rule.scriptCode && rule.scriptCode.trim() !== "") {
             activeScriptRules.push({
                 domainList: hostnames,
@@ -107,11 +139,11 @@ async function updateEngine() {
         }
     }
 
-    // Apply DNR Rules
+    // Apply DNR rules (preserve 9999 by only removing non-9999 existing rules)
     const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
     try {
         await chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: existingRules.map(r => r.id),
+            removeRuleIds: existingRules.map(r => r.id).filter(id => id !== 9999),
             addRules: dnrRules
         });
     } catch (e) {
@@ -119,24 +151,35 @@ async function updateEngine() {
     }
 }
 
-// --- SCRIPT EXECUTION LOGIC ---
+// --- SCRIPT EXECUTION ---
 function executeUserScript(tabId, code) {
     if (tabId < 0) return;
+
     chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        world: "MAIN",
-        func: (injectedCode) => {
+        target: { tabId },
+        world: "MAIN", // CSP is stripped by DNR rule 9999 before page loads
+        func: (codeToRun) => {
             try {
-                const el = document.createElement('script');
-                el.textContent = injectedCode;
-                (document.head || document.documentElement).appendChild(el);
-                el.remove();
-            } catch (e) { console.error("Web Surf Helper Script Error:", e); }
+                new Function(codeToRun)();
+            } catch (e1) {
+                console.warn("[WebSurfHelper] new Function blocked, trying script tag...", e1);
+                try {
+                    const el = document.createElement('script');
+                    el.textContent = codeToRun;
+                    (document.head || document.documentElement).appendChild(el);
+                    el.remove();
+                } catch (e2) {
+                    console.error("[WebSurfHelper] All execution methods failed:", e2);
+                }
+            }
         },
         args: [code]
-    }).catch(() => {});
+    }).catch((e) => {
+        console.error("[WebSurfHelper] executeScript injection failed:", e);
+    });
 }
 
+// --- NAV EVENT HANDLERS ---
 function handleNavEvent(tabId, url, triggerPhase) {
     try {
         const hostname = new URL(url).hostname;
@@ -153,10 +196,12 @@ chrome.webNavigation.onCommitted.addListener((d) => { if (d.frameId === 0) handl
 chrome.webNavigation.onDOMContentLoaded.addListener((d) => { if (d.frameId === 0) handleNavEvent(d.tabId, d.url, 'document_end'); });
 chrome.webNavigation.onCompleted.addListener((d) => { if (d.frameId === 0) handleNavEvent(d.tabId, d.url, 'document_idle'); });
 
+// --- INTERCEPT TRIGGER ---
 chrome.webRequest.onBeforeRequest.addListener((details) => {
-    if (!details.initiator) return;
+    let initiatorUrl = details.initiator || details.documentUrl || details.originUrl;
+    if (!initiatorUrl) return;
     try {
-        const hostname = new URL(details.initiator).hostname;
+        const hostname = new URL(initiatorUrl).hostname;
         activeScriptRules.forEach(rule => {
             if (rule.scriptTrigger !== 'on_intercept') return;
             if (rule.domainList.length > 0 && !rule.domainList.some(domain => hostname.includes(domain))) return;
@@ -167,6 +212,7 @@ chrome.webRequest.onBeforeRequest.addListener((details) => {
     } catch (e) {}
 }, { urls: ["<all_urls>"] });
 
+// --- INIT & STORAGE WATCH ---
 updateEngine();
 let updateTimeout = null;
 chrome.storage.onChanged.addListener((changes, area) => {
