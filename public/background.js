@@ -27,7 +27,7 @@ const SYSTEM_RULES = [
         id: 'system_ws_helper',
         name: "Auto click on 'more'",
         domain: "www.linkedin.com",
-        regex: "",
+        regex: "^https:\\/\\/www\\.linkedin\\.com\\/flagship-web\\/rsc-action\\/actions\\/pagination(?:\\?.*)?$",
         types: [],
         conditionLogic: "OR",
         active: false,
