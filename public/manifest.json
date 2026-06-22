@@ -4,17 +4,17 @@
   "version": "2.0",
   "description": "Block requests and execute custom scripts based on network interceptions or document events.",
   "icons": {
-    "16": "images/icon/icon-16.png",
-    "32": "images/icon/icon-32.png",
-    "48": "images/icon/icon-48.png",
-    "128": "images/icon/icon-128.png"
+    "16": "images/icon/wsh-icon-16.png",
+    "32": "images/icon/wsh-icon-32.png",
+    "48": "images/icon/wsh-icon-48.png",
+    "128": "images/icon/wsh-icon-128.png"
   },
   "action": {
     "default_icon": {
-      "16": "images/icon/icon-16.png",
-      "32": "images/icon/icon-32.png",
-      "48": "images/icon/icon-48.png",
-      "128": "images/icon/icon-128.png"
+      "16": "images/icon/wsh-icon-16.png",
+      "32": "images/icon/wsh-icon-32.png",
+      "48": "images/icon/wsh-icon-48.png",
+      "128": "images/icon/wsh-icon-128.png"
     },
     "default_title": "Web Surf Helper",
     "default_popup": "popup.html"
