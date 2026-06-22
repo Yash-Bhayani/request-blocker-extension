@@ -26,7 +26,7 @@
             </div>
 
             <label>Rule Name</label>
-            <input type="text" x-model="ruleName" placeholder="My LinkedIn Rule" :disabled="isReadOnly">
+            <input type="text" x-model="ruleName" :disabled="isReadOnly">
 
             <label style="margin-top: 15px;">Target Domains</label>
             <template x-for="(dom, index) in domains" :key="index">
