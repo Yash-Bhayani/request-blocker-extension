@@ -1,6 +1,6 @@
 # Web Surf Helper
 
-The helper extension which helps you while you surf the web.
+The helper extension, which helps you while you surf the web.
 
 It allows you to:
 1. Block specific network requests
