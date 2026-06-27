@@ -75,6 +75,23 @@ input:checked + .slider:before { transform: translateX(16px); }
 }
 .btn-manage:hover { background-color: #dee2e6; }
 
+.rules-list {
+    max-height: 220px; /* Fits exactly ~4 rules before scrolling */
+    overflow-y: auto;
+    padding-right: 5px; /* Give scrollbar breathing room */
+    margin-right: -5px; /* Offset the padding to keep things centered */
+}
+
+.rules-list::-webkit-scrollbar {
+    width: 6px;
+}
+.rules-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.rules-list::-webkit-scrollbar-thumb {
+    background-color: #ced4da;
+    border-radius: 10px;
+}
 
 @media (prefers-color-scheme: dark) {
     body {
@@ -102,5 +119,9 @@ input:checked + .slider:before { transform: translateX(16px); }
     }
     .slider {
         background-color: #495057;
+    }
+
+    .rules-list::-webkit-scrollbar-thumb {
+        background-color: #6c757d;
     }
 }

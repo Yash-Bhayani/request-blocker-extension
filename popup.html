@@ -13,19 +13,21 @@
 
 <div class="content" style="padding: 15px;">
     <div x-show="activeSiteRules.length === 0" class="empty-state">
-        No active rules for this website.
+        No rules for this website.
     </div>
 
-    <template x-for="rule in activeSiteRules" :key="rule.id">
-        <div class="rule" :style="rule.active ? '' : 'opacity: 0.6;'">
-            <span class="rule-name" x-text="rule.name || 'Custom Rule'" :title="rule.name"></span>
+    <div class="rules-list">
+        <template x-for="rule in activeSiteRules" :key="rule.id">
+            <div class="rule" :style="rule.active ? '' : 'opacity: 0.6;'">
+                <span class="rule-name" x-text="rule.name || 'Custom Rule'" :title="rule.name"></span>
 
-            <label class="switch">
-                <input type="checkbox" :checked="rule.active" @change="toggleRule(rule.id, $event.target.checked)">
-                <span class="slider"></span>
-            </label>
-        </div>
-    </template>
+                <label class="switch">
+                    <input type="checkbox" :checked="rule.active" @change="toggleRule(rule.id, $event.target.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </template>
+    </div>
 
     <button class="btn-manage" @click="openOptions()" style="margin-top: 15px;">
         ⚙️ Manage Rules
