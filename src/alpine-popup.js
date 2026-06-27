@@ -51,16 +51,30 @@ Alpine.data('popupManager', () => ({
     },
 
     async toggleRule(id, active) {
-        // Find the rule in the main array and update it
+        // --- NEW: Request persistent permissions when turning a rule ON ---
+        if (active) {
+            try {
+                // Because clicking the toggle is a user gesture, the browser allows this prompt
+                const granted = await chrome.permissions.request({ origins: ["<all_urls>"] });
+                if (!granted) {
+                    console.warn("[WebSurfHelper] User denied persistent permissions.");
+                }
+            } catch (e) {
+                console.warn("[WebSurfHelper] Permission request ignored or already granted.", e);
+            }
+        }
+        // ------------------------------------------------------------------
+
         const rule = this.rules.find(r => r.id === id);
         if (!rule) return;
 
         rule.active = active;
 
-        // Save the FULL array back to storage so hidden rules aren't lost
+        // Explicitly update the rule object and save
         const cleanRules = JSON.parse(JSON.stringify(this.rules));
         await chrome.storage.local.set({ rules: cleanRules });
 
+        // Refresh local state to ensure reactivity
         this.rules = cleanRules;
     },
 

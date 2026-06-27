@@ -68,6 +68,16 @@ Alpine.data('ruleManager', () => ({
     },
 
     async saveRule() {
+        // --- NEW: Request persistent permissions when saving a rule ---
+        try {
+            const granted = await chrome.permissions.request({ origins: ["<all_urls>"] });
+            if (!granted) {
+                console.warn("[WebSurfHelper] Host permissions were denied by the user.");
+            }
+        } catch (e) {
+            console.warn("[WebSurfHelper] Permission request ignored or already granted.");
+        }
+        // --------------------------------------------------------------
         let cleanList = this.domains.map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0]).filter(d => d.length > 0);
         if (cleanList.length === 0) return alert("Please provide at least one Target Domain.");
         if (!this.ruleName.trim()) return alert("Please provide a Rule Name.");
