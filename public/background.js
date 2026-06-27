@@ -136,6 +136,95 @@ window.__wsHelper = {
             grid-column-start: 1;
         }
         `
+    },
+    {
+        id: 'system_fb_clean_feed_mode',
+        name: "Facebook CleanFeed Mode",
+        domain: "www.facebook.com",
+        regex: "",
+        types: [],
+        conditionLogic: "OR",
+        active: false,
+        isSystem: true,
+        enableBlock: false,
+        enableScript: false,
+        enableCSS: true,
+        cssCode: `
+        html#facebook body .xornbnt > * {
+    display: none;
+}
+
+html#facebook body .xornbnt > div[role=main] {
+    display: flex;
+}
+
+html#facebook body .xornbnt > div[role=main] > .xeuugli {
+    width: 100%;
+}
+
+html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow {
+    width: 100%;
+}
+
+html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1lliihq .html-div.x1c1uobl .x1n2onr6 a.x1pdlv7q > .x6ikm8r > div {
+    width: 100% !important;
+}
+
+html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1lliihq .html-div.x1c1uobl > .x1n2onr6 > .x1n2onr6 {
+    display: flex;
+    display: block;
+    padding-top: unset!important;
+    justify-content: center;
+    margin: 0 auto;
+    text-align: center;
+}
+
+html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1lliihq .html-div.x1c1uobl > .x1n2onr6 > .x1n2onr6:not(.xl56j7k) > .x10l6tqk {
+    position: static;
+    display: inline-block;
+    width:100%;
+}
+
+html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1lliihq .html-div.x1c1uobl > .x1n2onr6 > .x1n2onr6:not(.xl56j7k) > .x10l6tqk > a.x1pdlv7q {
+    position: relative;
+    width:100%;
+}
+
+html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1lliihq .html-div.x1c1uobl .x1n2onr6 a.x1pdlv7q > .x6ikm8r .x1n2onr6 {
+    display: inline;
+    padding-top: unset;
+}
+
+html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1lliihq .html-div.x1c1uobl .x1n2onr6 a.x1pdlv7q > .x6ikm8r .x1n2onr6 > .x13vifvy {
+    position: relative;
+}
+
+html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1lliihq .html-div.x1c1uobl .x1n2onr6 a.x1pdlv7q > .x6ikm8r .x1n2onr6 > .x13vifvy img {
+    display: block;
+    max-width: 100%;
+    width: auto !important;
+    height: auto;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+}
+        `
+    },
+    {
+        id: 'system_fb_full_width_images',
+        name: "Facebook Full Width Image",
+        domain: "www.facebook.com",
+        regex: "",
+        types: [],
+        conditionLogic: "OR",
+        active: false,
+        isSystem: true,
+        enableBlock: false,
+        enableScript: false,
+        enableCSS: true,
+        cssCode: `
+            html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1lliihq .html-div.x1c1uobl .x1n2onr6 a.x1pdlv7q > .x6ikm8r .x1n2onr6 > .x13vifvy img { width:100%!important; }
+        `
     }
 ];
 
