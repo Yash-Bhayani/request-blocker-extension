@@ -25,7 +25,7 @@ const SYSTEM_RULES = [
     },
     {
         id: 'system_ws_helper',
-        name: "Auto click on 'more' (Only reference purpose)",
+        name: "LinkedIn auto click on 'more' (Only reference purpose)",
         domain: "www.linkedin.com",
         regex: "^https:\\/\\/www\\.linkedin\\.com\\/flagship-web\\/rsc-action\\/actions\\/pagination(?:\\?.*)?$",
         types: [],
@@ -70,8 +70,8 @@ window.__wsHelper = {
         }
     },
     {
-        id: 'system_auto_expand',
-        name: "Auto Expand",
+        id: 'system_linkedin_post_auto_expand',
+        name: "LinkedIn Post Auto Expand",
         domain: "www.linkedin.com",
         regex: "",
         types: [],
@@ -87,6 +87,55 @@ window.__wsHelper = {
 [data-testid=expandable-text-box] {
     -webkit-line-clamp: unset;
 }`
+    },
+    {
+        id: 'system_linked_in_hide_right_sidebar',
+        name: "LinkedIn Hide Right Sidebar",
+        domain: "www.linkedin.com",
+        regex: "",
+        types: [],
+        conditionLogic: "OR",
+        active: false,
+        isSystem: true,
+        enableBlock: false,
+        enableScript: false,
+        enableCSS: true,
+        cssCode: `
+        #workspace aside[aria-label="Aside"] {
+            display:none;
+        }
+        #workspace section[aria-label="Primary content"] {
+            grid-column-end: -1;
+        }
+        
+        #workspace [data-sdui-screen="com.linkedin.sdui.flagshipnav.search.SearchResultsContent"] section[aria-label="Primary content"] > div:nth-child(1) {
+            grid-template-columns: unset;
+        }
+        #workspace [data-sdui-screen="com.linkedin.sdui.flagshipnav.search.SearchResultsContent"] section[aria-label="Primary content"] > div:nth-child(1) > div:nth-child(2) {
+            display:none;
+        }
+        `
+    },
+    {
+        id: 'system_linked_in_hide_left_sidebar',
+        name: "LinkedIn Hide Left Sidebar",
+        domain: "www.linkedin.com",
+        regex: "",
+        types: [],
+        conditionLogic: "OR",
+        active: false,
+        isSystem: true,
+        enableBlock: false,
+        enableScript: false,
+        enableCSS: true,
+        cssCode: `
+        #workspace aside[aria-label="Sidebar"] {
+            display:none;
+        }
+        #workspace section[aria-label="Primary content"] {
+            grid-column-start: 1;
+        }
+        `
     }
 ];
 
@@ -99,18 +148,40 @@ async function updateEngine() {
     const result = await chrome.storage.local.get("rules");
     let customRules = result.rules || [];
 
-    // --- 1. PRESERVE SYSTEM RULES ---
+// --- 1. PRESERVE SYSTEM RULES ---
     let storageNeedsUpdate = false;
+
+    // A. Remove any old system rules from storage that no longer exist in background.js
+    const validSystemIds = SYSTEM_RULES.map(r => r.id);
+    const initialLength = customRules.length;
+    customRules = customRules.filter(r => !r.isSystem || validSystemIds.includes(r.id));
+    if (customRules.length !== initialLength) storageNeedsUpdate = true;
+
+    // B. Add new system rules OR update existing ones
     for (const sysRule of SYSTEM_RULES) {
-        if (!customRules.find(r => r.id === sysRule.id)) {
+        const existingIndex = customRules.findIndex(r => r.id === sysRule.id);
+
+        if (existingIndex === -1) {
+            // Rule doesn't exist at all, add it
             customRules.push(sysRule);
             storageNeedsUpdate = true;
+        } else {
+            // Rule exists, update its properties (like Name, CSS, Regex)
+            // but preserve the user's On/Off toggle state!
+            const userActiveState = customRules[existingIndex].active;
+            const updatedRule = { ...sysRule, active: userActiveState };
+
+            // Only trigger a storage save if something actually changed
+            if (JSON.stringify(customRules[existingIndex]) !== JSON.stringify(updatedRule)) {
+                customRules[existingIndex] = updatedRule;
+                storageNeedsUpdate = true;
+            }
         }
     }
+
     if (storageNeedsUpdate) {
         await chrome.storage.local.set({ rules: customRules });
     }
-
     const dnrRules = [];
     activeScriptRules = [];
     activeCSSRules = [];
