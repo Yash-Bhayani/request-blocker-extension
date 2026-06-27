@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Web Surf Helper",
-  "version": "2.0",
+  "version": "2.0.1",
   "description": "Block requests and execute custom scripts based on network interceptions or document events.",
   "icons": {
     "16": "images/icon/wsh-icon-16.png",
