@@ -12,11 +12,11 @@
 </div>
 
 <div class="content" style="padding: 15px;">
-    <div x-show="rules.length === 0" class="empty-state">
-        No rules created yet.
+    <div x-show="activeSiteRules.length === 0" class="empty-state">
+        No active rules for this website.
     </div>
 
-    <template x-for="rule in rules" :key="rule.id">
+    <template x-for="rule in activeSiteRules" :key="rule.id">
         <div class="rule" :style="rule.active ? '' : 'opacity: 0.6;'">
             <span class="rule-name" x-text="rule.name || 'Custom Rule'" :title="rule.name"></span>
 
