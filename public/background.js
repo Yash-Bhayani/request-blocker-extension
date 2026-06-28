@@ -212,7 +212,7 @@ html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1ll
     },
     {
         id: 'system_fb_full_width_images',
-        name: "Facebook Full Width Image",
+        name: "Facebook Full Width Images",
         domain: "www.facebook.com",
         regex: "",
         types: [],
@@ -228,7 +228,7 @@ html#facebook body .xornbnt > div[role=main] > .xeuugli .x1v0nzow .x6o7n8i .x1ll
     },
     {
         id: 'system_fb_high_res_images',
-        name: "FB High-Res Images",
+        name: "Facebook High-Res Images",
         domain: "www.facebook.com",
         regex: "",
         types: [],
