@@ -102,7 +102,7 @@ window.__wsHelper = {
         enableCSS: true,
         cssCode: `
         #workspace aside[aria-label="Aside"] {
-            display:none;
+             display:none; 
         }
         #workspace section[aria-label="Primary content"] {
             grid-column-end: -1;
@@ -744,6 +744,35 @@ chrome.storage.onChanged.addListener((changes, area) => {
         L('storage.onChanged: rules changed');
         const oldRules = changes.rules.oldValue || [];
         const newRules = changes.rules.newValue || [];
+
+        // --- NEW: Detect CSS rules turning OFF and remove them instantly ---
+        chrome.tabs.query({}, (tabs) => {
+            for (const newRule of newRules) {
+                const oldRule = oldRules.find(r => r.id === newRule.id);
+
+                // Skip if it is a brand-new rule or doesn't have CSS
+                if (!oldRule || !newRule.enableCSS) continue;
+
+                const wasActive = oldRule.active;
+                const isNowActive = newRule.active;
+
+                // If the rule was just toggled OFF, find matching tabs and remove the CSS
+                if (wasActive && !isNowActive) {
+                    tabs.forEach(tab => {
+                        if (tab.url && isValidTabUrl(tab.url)) {
+                            try {
+                                const hostname = new URL(tab.url).hostname;
+                                const domains = newRule.domain ? newRule.domain.split(',').map(d => d.trim()) : [];
+                                // If it's a global rule or matches the domain, send the remove command
+                                if (domains.length === 0 || domains.some(d => hostname.includes(d))) {
+                                    removeUserCSS(tab.id, newRule.id);
+                                }
+                            } catch (e) {}
+                        }
+                    });
+                }
+            }
+        });
 
         // updateEngine re-syncs CSS on every rule change
         L('storage.onChanged: will re-sync via updateEngine');
