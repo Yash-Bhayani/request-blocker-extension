@@ -229,6 +229,47 @@
         </p>
     </div>
 
+    <div class="modal-overlay" x-show="showSafetyModal" style="display: none;" x-transition>
+        <div class="modal-content" @click.stop>
+            <h3 style="color: var(--danger); border-bottom: none; margin-bottom: 10px;">🛡️ Security Check</h3>
+
+            <div x-show="modalStep === 1">
+                <p>You are about to save a rule containing custom code. Code from the internet can steal your passwords or track your data.</p>
+                <p style="font-weight: 600;">Are you a developer, or do you know exactly what you are entering?</p>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn-secondary" style="flex: 1;" @click="selectDeveloperStatus(false)">I am NOT a developer</button>
+                    <button class="btn-primary" style="flex: 1;" @click="selectDeveloperStatus(true)">I am a developer</button>
+                </div>
+                <button class="btn-outline" style="margin-top: 15px; width: 100%; border: none;" @click="cancelSave()">Cancel</button>
+            </div>
+
+            <div x-show="modalStep === 2.1">
+                <p>Please ask an AI (like ChatGPT or Gemini) to verify that your code is safe. Copy the prompt below and paste it into the AI chat:</p>
+                <textarea x-model="aiPromptText" readonly style="min-height: 120px; margin-bottom: 10px; font-size: 12px;"></textarea>
+                <button class="btn-outline" style="width: 100%; margin-bottom: 20px;" @click="copyPrompt()">📋 Copy Prompt</button>
+
+                <p style="font-weight: 600;">What did the AI say?</p>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-danger" style="flex: 1;" @click="cancelSave()">Not safe, don't save</button>
+                    <button class="btn-primary" style="flex: 1; background-color: #10b981;" @click="confirmAndSaveRule()">It is safe</button>
+                </div>
+            </div>
+
+            <div x-show="modalStep === 2.2">
+                <p style="color: var(--danger); font-weight: bold;">⚠️ Have you given the right answer?</p>
+                <p>Ensure what you are entering is safe. Ask chat AI what you entered is safe or not. Copy the following prompt and paste it into the chat AI:</p>
+
+                <textarea x-model="aiPromptText" readonly style="min-height: 120px; margin-bottom: 10px; font-size: 12px;"></textarea>
+                <button class="btn-outline" style="width: 100%; margin-bottom: 20px;" @click="copyPrompt()">📋 Copy Prompt</button>
+
+                <p style="font-weight: 600;">What did the AI say?</p>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-danger" style="flex: 1;" @click="cancelSave()">Not safe, don't save</button>
+                    <button class="btn-primary" style="flex: 1; background-color: #10b981;" @click="confirmAndSaveRule()">It is safe</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script type="module" src="./src/alpine-options.js"></script>

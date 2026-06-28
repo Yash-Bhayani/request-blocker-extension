@@ -25,6 +25,11 @@ Alpine.data('ruleManager', () => ({
     enableCSS: false,
     cssCode: "",
 
+    // --- NEW: Safety Modal State ---
+    showSafetyModal: false,
+    modalStep: 1,
+    aiPromptText: "",
+
     get titleText() {
         if (this.viewingId) return 'View Rule';
         return this.editingId ? 'Edit Rule' : 'Create Rule';
@@ -67,17 +72,8 @@ Alpine.data('ruleManager', () => ({
         this.rules = result.rules || [];
     },
 
+    // --- UPDATED: Initiates the save process ---
     async saveRule() {
-        // --- NEW: Request persistent permissions when saving a rule ---
-        try {
-            const granted = await chrome.permissions.request({ origins: ["<all_urls>"] });
-            if (!granted) {
-                console.warn("[WebSurfHelper] Host permissions were denied by the user.");
-            }
-        } catch (e) {
-            console.warn("[WebSurfHelper] Permission request ignored or already granted.");
-        }
-        // --------------------------------------------------------------
         let cleanList = this.domains.map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0]).filter(d => d.length > 0);
         if (cleanList.length === 0) return alert("Please provide at least one Target Domain.");
         if (!this.ruleName.trim()) return alert("Please provide a Rule Name.");
@@ -85,6 +81,58 @@ Alpine.data('ruleManager', () => ({
         if (this.enableBlock && !this.regex.trim() && this.types.length === 0) return alert("Blocking enabled: Provide a Regex or Resource Type.");
         if (this.enableScript && this.enabledTriggers.length === 0) return alert("Script enabled: Please provide JavaScript code for at least one trigger.");
 
+        // NEW LOGIC: Only trigger the safety check flow if Custom JavaScript is enabled
+        if (this.enableScript) {
+            this.modalStep = 1;
+            this.showSafetyModal = true;
+            return;
+        }
+
+        // If it's just CSS or Blocking, save immediately
+        this.confirmAndSaveRule(cleanList);
+    },
+
+    // --- UPDATED: Sets up the AI prompt based on Developer status ---
+    selectDeveloperStatus(isDeveloper) {
+        // We only care about the JS code now
+        let codeToCheck = "JavaScript:\n" + this.scriptCode + "\n\n";
+
+        if (isDeveloper) {
+            this.modalStep = 2.2;
+            this.aiPromptText = `I am adding this custom JavaScript to my browser extension. Can you review this script to ensure it is completely safe and does not contain any malicious code, XSS risks, or data stealers?\n\n${codeToCheck.trim()}`;
+        } else {
+            this.modalStep = 2.1;
+            this.aiPromptText = `I am trying to add this custom JavaScript to a browser extension. I am not a developer. Can you check if this exact code is safe to use? Does it contain any malicious scripts, session stealers, trackers, or security risks? Here is the code:\n\n${codeToCheck.trim()}`;
+        }
+    },
+
+    async copyPrompt() {
+        try {
+            await navigator.clipboard.writeText(this.aiPromptText);
+            alert("Prompt copied to clipboard! Paste it into Chat AI.");
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+        }
+    },
+
+    cancelSave() {
+        this.showSafetyModal = false;
+        this.modalStep = 1;
+    },
+
+    // --- MOVED: The actual saving logic happens here now ---
+    async confirmAndSaveRule(cleanListParam = null) {
+        this.showSafetyModal = false;
+
+        // Request persistent permissions when saving a rule
+        try {
+            const granted = await chrome.permissions.request({ origins: ["<all_urls>"] });
+            if (!granted) console.warn("[WebSurfHelper] Host permissions were denied by the user.");
+        } catch (e) {
+            console.warn("[WebSurfHelper] Permission request ignored or already granted.");
+        }
+
+        let cleanList = cleanListParam || this.domains.map(d => d.trim().replace(/^https?:\/\//, '').split('/')[0]).filter(d => d.length > 0);
         let combinedDomains = cleanList.join(', ');
 
         const ruleData = {
@@ -116,6 +164,7 @@ Alpine.data('ruleManager', () => ({
         this.successMessage = "Rule saved successfully!";
         this.clearForm();
     },
+    // ----------------------------------------------------
 
     viewRule(id) {
         const rule = this.rules.find(r => r.id === id);
@@ -126,7 +175,7 @@ Alpine.data('ruleManager', () => ({
         this.domains = rule.domain ? rule.domain.split(', ') : [""];
         this.enableBlock = rule.enableBlock !== false;
         this.enableScript = rule.enableScript || false;
-        this.enableCSS = rule.enableCSS || false;          // ← add this
+        this.enableCSS = rule.enableCSS || false;
         this.regex = rule.regex || "";
         this.types = rule.types || [];
         this.methods = rule.methods || [];
@@ -135,7 +184,7 @@ Alpine.data('ruleManager', () => ({
             ? { ...{ document_start: "", document_end: "", document_idle: "", on_intercept: "" }, ...rule.scriptCodes }
             : { document_start: "", document_end: "", document_idle: rule.scriptCode || "", on_intercept: "" };
         this.scriptTrigger = this.enabledTriggers[0] || "document_idle";
-        this.cssCode = rule.cssCode || "";                 // ← add this
+        this.cssCode = rule.cssCode || "";
         this.active = rule.active;
         this.$nextTick(() => document.querySelector('.card').scrollIntoView({ behavior: 'smooth' }));
     },
@@ -160,6 +209,11 @@ Alpine.data('ruleManager', () => ({
             this.active = rule.active;
             this.enableCSS = rule.enableCSS || false;
             this.cssCode = rule.cssCode || "";
+
+            // --- NEW: Smoothly scroll to the top of the page ---
+            this.$nextTick(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
         }
     },
 
