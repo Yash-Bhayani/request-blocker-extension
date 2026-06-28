@@ -257,7 +257,7 @@
 
             <div x-show="modalStep === 2.2">
                 <p style="color: var(--danger); font-weight: bold;">⚠️ Have you given the right answer?</p>
-                <p>Ensure what you are entering is safe. Ask chat AI what you entered is safe or not. Copy the following prompt and paste it into the chat AI:</p>
+                <p>Ensure what you entered is safe. Copy the following prompt, paste it into an AI chat, and verify that it is safe or not:</p>
 
                 <textarea x-model="aiPromptText" readonly style="min-height: 120px; margin-bottom: 10px; font-size: 12px;"></textarea>
                 <button class="btn-outline" style="width: 100%; margin-bottom: 20px;" @click="copyPrompt()">📋 Copy Prompt</button>
