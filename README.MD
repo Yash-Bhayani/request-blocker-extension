@@ -15,7 +15,12 @@ In that case, you can use this extension to block image and video rendering. Thi
 1. Block LinkedIn Images
 2. Block LinkedIn Video
 3. LinkedIn auto-click on 'more' *(for reference purposes only)*
-4. LinkedIn post auto-expand
+4. LinkedIn Post Auto Expand
+5. LinkedIn Hide Right Sidebar
+6. LinkedIn Hide Left Sidebar
+7. Facebook CleanFeed Mode
+8. Facebook Full Width Images
+9. Facebook High-Res Images
 
 Link: https://addons.mozilla.org/en-US/firefox/addon/network-request-blocker/
 
